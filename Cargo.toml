@@ -1,0 +1,11 @@
+[package]
+name = "cli-kneeboard"
+version = "0.1.0"
+edition = "2021"
+license = "GPL-3.0-only"
+authors = ["Alexis Lowe <agl314@chimbosonic.com>"]
+description = "Checklist Tool"
+
+[dependencies]
+clap = { version = "3.2.22", features = ["derive"] }
+pulldown-cmark = "0.9.2"
