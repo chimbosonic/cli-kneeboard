@@ -1,6 +1,6 @@
 mod libs;
 use clap::Parser as clapParser;
-
+use crate::libs::checklist::extract_checklist;
 
 /// Simple program to greet a person
 #[derive(clapParser, Debug)]
@@ -35,6 +35,8 @@ fn main() {
 
     println!("checklist_path: {:?}", args.checklist_path);
     println!("save: {:?}", args.save);
+    let markdown_input = "# Example Heading\nExample paragraph with **lorem** _ipsum_ text.\n<!-- checklist - name -->\n - [x] test checklist item";
+    let check_list = extract_checklist(String::from(markdown_input));
 }
 
 
