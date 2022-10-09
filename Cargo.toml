@@ -7,6 +7,10 @@ authors = ["Alexis Lowe <agl314@chimbosonic.com>"]
 description = "Checklist Tool"
 
 [dependencies]
+chrono = "0.4.22"
 clap = { version = "3.2.22", features = ["derive"] }
+env_logger = "0.9.1"
+log = "0.4.17"
 pulldown-cmark = "0.9.2"
+testing_logger = "0.1.1"
 toml = "0.5.9"

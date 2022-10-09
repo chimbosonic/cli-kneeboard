@@ -5,7 +5,8 @@
 - Checkbox `[ ]` is not required but allowed
 - Optional item is marked by `[OPTIONAL]`
 - `<!-- checklist = 'name' -->` delimits the start and end of a checklist. End is optional
-- `checklist = 'name'` has to be valid toml. And key must be `checklist` 
+- `checklist = 'name'` has to be valid toml. And key must be `checklist`
+- if no name is passed or its invalid name will be set to `checklist`
 
 ```markdown
 <!-- checklist = 'name' -->
