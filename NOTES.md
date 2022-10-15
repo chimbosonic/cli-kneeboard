@@ -23,3 +23,6 @@ See [SPEC.md](./SPEC.md)
 - [] Save a temporary hidden file with progress recorded
 - [] CLI option to not save progress
 - [] Implement Verbosity and proper logging
+- [x] Parse Checklist SPEC
+- [] Parse Saved Progress SPEC
+- [] Split Saved Progress and Checklist Libs

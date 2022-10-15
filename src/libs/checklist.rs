@@ -86,7 +86,10 @@ impl Checklist {
     fn set_optionality(mut self) -> Checklist {
         for checklist_item in self.items.iter_mut() {
             if checklist_item.text.contains("[OPTIONAL]") {
-                debug!("[set_optionality] Setting {:?} to optional",checklist_item.text);
+                debug!(
+                    "[set_optionality] Setting {:?} to optional",
+                    checklist_item.text
+                );
                 checklist_item.optional = true;
             }
         }
