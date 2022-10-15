@@ -2,8 +2,9 @@ use log::{debug, error, info, warn};
 use pulldown_cmark::{Event, Options, Parser, Tag};
 use toml::Value;
 
+#[derive(Clone)]
 pub struct Checklist {
-    list: Vec<ChecklistItem>,
+    items: Vec<ChecklistItem>,
     name: String,
 }
 
@@ -14,11 +15,10 @@ pub struct ChecklistItem {
     resolved: bool,
 }
 
-// TODO: extract optional status of items
 pub fn extract_checklist(markdown_input: String) -> Checklist {
     let mut checklist = Checklist {
         name: "".to_string(),
-        list: Vec::new(),
+        items: Vec::new(),
     };
     let mut options = Options::empty();
     options.insert(Options::ENABLE_TASKLISTS);
@@ -53,7 +53,7 @@ pub fn extract_checklist(markdown_input: String) -> Checklist {
                             "[extract_checklist] Adding ChecklistItem: {:?}",
                             checklist_item
                         );
-                        checklist.list.push(checklist_item.clone());
+                        checklist.items.push(checklist_item.clone());
 
                         checklist_item = ChecklistItem {
                             text: "".to_string(),
@@ -74,13 +74,26 @@ pub fn extract_checklist(markdown_input: String) -> Checklist {
         };
     }
 
-    if checklist.list.len() == 0 {
+    if checklist.items.len() == 0 {
         warn!("[extract_checklist] Found No Checklist or and Items returning Empty Checklist")
     }
 
+    checklist = checklist.set_optionality();
     return checklist;
 }
 
+impl Checklist {
+    fn set_optionality(mut self) -> Checklist {
+        for checklist_item in self.items.iter_mut() {
+            if checklist_item.text.contains("[OPTIONAL]") {
+                debug!("[set_optionality] Setting {:?} to optional",checklist_item.text);
+                checklist_item.optional = true;
+            }
+        }
+
+        return self;
+    }
+}
 fn extract_checklist_name(input_string: String) -> String {
     debug!(
         "[extract_checklist_name] Extracting name from : {:?}",
@@ -135,15 +148,38 @@ Example paragraph with **lorem** _ipsum_ text.
         let checklist = extract_checklist(String::from(markdown_input));
         let mut test_checklist = Checklist {
             name: "checklist".to_string(),
-            list: Vec::new(),
+            items: Vec::new(),
         };
-        test_checklist.list.push(ChecklistItem {
+        test_checklist.items.push(ChecklistItem {
             text: "test checklist item".to_string(),
             optional: false,
             resolved: false,
         });
         assert_eq!(test_checklist.name, checklist.name);
-        assert_eq!(test_checklist.list, checklist.list)
+        assert_eq!(test_checklist.items, checklist.items)
+    }
+
+    #[test]
+    fn extract_checklist_from_markdown_simple_single_optional_item() {
+        setup();
+        let markdown_input = r#"
+# Example Heading
+Example paragraph with **lorem** _ipsum_ text.
+<!-- checklist -->
+- [x] test checklist item [OPTIONAL]
+        "#;
+        let checklist = extract_checklist(String::from(markdown_input));
+        let mut test_checklist = Checklist {
+            name: "checklist".to_string(),
+            items: Vec::new(),
+        };
+        test_checklist.items.push(ChecklistItem {
+            text: "test checklist item [OPTIONAL]".to_string(),
+            optional: true,
+            resolved: false,
+        });
+        assert_eq!(test_checklist.name, checklist.name);
+        assert_eq!(test_checklist.items, checklist.items);
     }
 
     #[test]
@@ -159,20 +195,20 @@ Example paragraph with **lorem** _ipsum_ text.
         let checklist = extract_checklist(String::from(markdown_input));
         let mut test_checklist = Checklist {
             name: "checklist".to_string(),
-            list: Vec::new(),
+            items: Vec::new(),
         };
-        test_checklist.list.push(ChecklistItem {
+        test_checklist.items.push(ChecklistItem {
             text: "test checklist item 1".to_string(),
             optional: false,
             resolved: false,
         });
-        test_checklist.list.push(ChecklistItem {
+        test_checklist.items.push(ChecklistItem {
             text: "test checklist item 2".to_string(),
             optional: false,
             resolved: false,
         });
         assert_eq!(test_checklist.name, checklist.name);
-        assert_eq!(test_checklist.list, checklist.list)
+        assert_eq!(test_checklist.items, checklist.items)
     }
 
     #[test]
@@ -191,19 +227,19 @@ Example paragraph with **lorem** _ipsum_ text.
         let checklist = extract_checklist(String::from(markdown_input));
         let mut test_checklist = Checklist {
             name: "".to_string(),
-            list: Vec::new(),
+            items: Vec::new(),
         };
-        test_checklist.list.push(ChecklistItem {
+        test_checklist.items.push(ChecklistItem {
             text: "test checklist item 1".to_string(),
             optional: false,
             resolved: false,
         });
-        test_checklist.list.push(ChecklistItem {
+        test_checklist.items.push(ChecklistItem {
             text: "test checklist item 2".to_string(),
             optional: false,
             resolved: false,
         });
-        assert_eq!(test_checklist.list, checklist.list)
+        assert_eq!(test_checklist.items, checklist.items)
     }
 
     #[test]
@@ -218,14 +254,14 @@ Example paragraph with **lorem** _ipsum_ text.
         let checklist = extract_checklist(String::from(markdown_input));
         let mut test_checklist = Checklist {
             name: "checklist".to_string(),
-            list: Vec::new(),
+            items: Vec::new(),
         };
-        test_checklist.list.push(ChecklistItem {
+        test_checklist.items.push(ChecklistItem {
             text: "Example paragraph with lorem ipsum text.".to_string(),
             optional: false,
             resolved: false,
         });
-        assert_eq!(test_checklist.list, checklist.list)
+        assert_eq!(test_checklist.items, checklist.items)
     }
 
     #[test]
@@ -243,9 +279,9 @@ Example paragraph with **lorem** _ipsum_ text.
         let checklist = extract_checklist(String::from(markdown_input));
         let test_checklist = Checklist {
             name: "checklist".to_string(),
-            list: Vec::new(),
+            items: Vec::new(),
         };
-        assert_eq!(test_checklist.list, checklist.list);
+        assert_eq!(test_checklist.items, checklist.items);
 
         testing_logger::validate(|captured_logs| {
             let warnings = captured_logs
