@@ -20,9 +20,10 @@ See [SPEC.md](./SPEC.md)
 ## To-do
 
 - [] Read in an MD file and find the checklist
-- [] Save a temporary hidden file with progress recorded
+- [] Save a temporary hidden file with Saved Progress recorded
 - [] CLI option to not save progress
 - [] Implement Verbosity and proper logging
+- [] Implement UI to display the checklist
 - [x] Parse Checklist SPEC
-- [] Parse Saved Progress SPEC
-- [] Split Saved Progress and Checklist Libs
+- [x] Parse Saved Progress SPEC
+- [x] Generate Saved Progress SPEC

@@ -19,15 +19,21 @@
 ## Saved Progress SPEC
 
 - TOML file
-- One table called `[checklist]`
-- Key value pairs where value is a `bool` and key is a `string`
-- Key is the text of the checklist item
-- Value is whether we completed the item or not
+- `text` is the text of the item
+- `optional` is whether the item is optional or not
+- `resolved` is whether we completed the item or not
 - file is saved as `.<name>.kb.toml`
   - the `<name>` here is the name of the checklist defined by `<!-- checklist = 'name' -->`
 
 ```toml
-[checklist]
-"My uncompleted checklist item" = false
-"My completed checklist item" = true
+[[items]]
+text = 'test checklist item 1'
+optional = false
+resolved = false
+
+[[items]]
+text = 'test checklist item 2'
+optional = false
+resolved = false
+
 ```

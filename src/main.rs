@@ -1,6 +1,8 @@
-mod libs;
-use crate::libs::checklist::extract_checklist;
-use crate::libs::logger::setup_logger;
+mod checklist;
+mod helpers;
+
+use crate::checklist::checklist::Checklist;
+use crate::helpers::logger::setup_logger;
 use log::LevelFilter;
 
 use clap::Parser as clapParser;
@@ -36,6 +38,13 @@ fn main() {
 
     println!("checklist_path: {:?}", args.checklist_path);
     println!("save: {:?}", args.save);
+    
     let markdown_input = "# Example Heading\nExample paragraph with **lorem** _ipsum_ text.\n<!-- checklist - name -->\n - [x] test checklist item";
-    let _checklist = extract_checklist(String::from(markdown_input));
+    println!("Checklist as markdown:\n{}",markdown_input);
+    let checklist_from_markdown = Checklist::new(String::from(markdown_input));
+    println!("checklist read from markdown: {:?}",checklist_from_markdown);
+    let toml = checklist_from_markdown.to_toml();
+    println!("checklist as toml:\n{}",toml);
+    let checklist_from_toml = Checklist::from_toml(toml,"name".to_string());
+    println!("checklist read from toml: {:?}",checklist_from_toml)
 }

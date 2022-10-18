@@ -1,88 +1,109 @@
 use log::{debug, error, info, warn};
 use pulldown_cmark::{Event, Options, Parser, Tag};
+use serde_derive::{Deserialize, Serialize};
 use toml::Value;
 
-#[derive(Clone)]
+#[derive(Clone,Debug)]
 pub struct Checklist {
-    items: Vec<ChecklistItem>,
-    name: String,
+    pub items: Vec<ChecklistItem>,
+    pub name: String,
 }
 
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
 pub struct ChecklistItem {
-    text: String,
-    optional: bool,
-    resolved: bool,
+    pub text: String,
+    pub optional: bool,
+    pub resolved: bool,
 }
 
-pub fn extract_checklist(markdown_input: String) -> Checklist {
-    let mut checklist = Checklist {
-        name: "".to_string(),
-        items: Vec::new(),
-    };
-    let mut options = Options::empty();
-    options.insert(Options::ENABLE_TASKLISTS);
-    let parser = Parser::new_ext(&markdown_input, options);
-    let mut is_list = false;
-    let mut is_checklist = false;
-    let mut is_list_item = false;
-    let mut checklist_item = ChecklistItem {
-        text: "".to_string(),
-        optional: false,
-        resolved: false,
-    };
-    for event in parser {
-        match &event {
-            Event::Start(tag) => match tag {
-                Tag::List(_) => is_list = true,
-                Tag::Item => is_list_item = true,
-                _ => (),
-            },
-            Event::Text(s) => {
-                if is_list && is_checklist && is_list_item {
-                    debug!("[extract_checklist] ChecklistItem Found text: {:?}", s);
-                    checklist_item.text.push_str(s);
-                }
-            }
-            Event::End(tag) => match tag {
-                Tag::List(_) => is_list = false,
-                Tag::Item => {
-                    is_list_item = false;
-                    if is_list && is_checklist {
-                        debug!(
-                            "[extract_checklist] Adding ChecklistItem: {:?}",
-                            checklist_item
-                        );
-                        checklist.items.push(checklist_item.clone());
+// This struct exist to help with Serialization of our Checklist
+#[derive(Deserialize, Serialize)]
+struct ChecklistItems {
+    items: Vec<ChecklistItem>,
+}
 
-                        checklist_item = ChecklistItem {
-                            text: "".to_string(),
-                            optional: false,
-                            resolved: false,
-                        }
-                    }
-                }
-                _ => (),
-            },
-            Event::Html(s) => {
-                if s.contains("checklist") && s.contains("<!--") {
-                    checklist.name = extract_checklist_name(s.to_string());
-                    is_checklist ^= true
-                }
-            }
-            _ => (),
-        };
+impl From<Vec<ChecklistItem>> for ChecklistItems {
+    fn from(items: Vec<ChecklistItem>) -> Self {
+        ChecklistItems { items }
     }
+}
 
-    if checklist.items.len() == 0 {
-        warn!("[extract_checklist] Found No Checklist or and Items returning Empty Checklist")
+impl From<Checklist> for ChecklistItems {
+    fn from(checklist: Checklist) -> Self {
+        ChecklistItems {
+            items: checklist.items,
+        }
     }
-
-    checklist = checklist.set_optionality();
-    return checklist;
 }
 
 impl Checklist {
+    pub fn new(markdown_input: String) -> Checklist {
+        let mut checklist = Checklist {
+            name: "".to_string(),
+            items: Vec::new(),
+        };
+        let mut options = Options::empty();
+        options.insert(Options::ENABLE_TASKLISTS);
+        let parser = Parser::new_ext(&markdown_input, options);
+        let mut is_list = false;
+        let mut is_checklist = false;
+        let mut is_list_item = false;
+        let mut checklist_item = ChecklistItem {
+            text: "".to_string(),
+            optional: false,
+            resolved: false,
+        };
+        for event in parser {
+            match &event {
+                Event::Start(tag) => match tag {
+                    Tag::List(_) => is_list = true,
+                    Tag::Item => is_list_item = true,
+                    _ => (),
+                },
+                Event::Text(s) => {
+                    if is_list && is_checklist && is_list_item {
+                        debug!("[extract_checklist] ChecklistItem Found text: {:?}", s);
+                        checklist_item.text.push_str(s);
+                    }
+                }
+                Event::End(tag) => match tag {
+                    Tag::List(_) => is_list = false,
+                    Tag::Item => {
+                        is_list_item = false;
+                        if is_list && is_checklist {
+                            debug!(
+                                "[extract_checklist] Adding ChecklistItem: {:?}",
+                                checklist_item
+                            );
+                            checklist.items.push(checklist_item.clone());
+
+                            checklist_item = ChecklistItem {
+                                text: "".to_string(),
+                                optional: false,
+                                resolved: false,
+                            }
+                        }
+                    }
+                    _ => (),
+                },
+                Event::Html(s) => {
+                    if s.contains("checklist") && s.contains("<!--") {
+                        checklist.name = extract_checklist_name(s.to_string());
+                        is_checklist ^= true
+                    }
+                }
+                _ => (),
+            };
+        }
+
+        if checklist.items.len() == 0 {
+            warn!("[extract_checklist] Found No Checklist or and Items returning Empty Checklist")
+        }
+
+        checklist = checklist.set_optionality();
+        return checklist;
+    }
+
     fn set_optionality(mut self) -> Checklist {
         for checklist_item in self.items.iter_mut() {
             if checklist_item.text.contains("[OPTIONAL]") {
@@ -96,7 +117,38 @@ impl Checklist {
 
         return self;
     }
+
+    /// Checklist serialize as TOML
+    /// panic if we fail
+    pub fn to_toml(&self) -> String {
+        let temp: ChecklistItems = self.to_owned().into();
+        match toml::to_string_pretty(&temp) {
+            Ok(s) => {
+                return s;
+            }
+            Err(_) => {
+                panic!("Failed to generate TOML");
+            }
+        }
+    }
+
+    /// Desirialize TOML into Checklist
+    /// panic if we fail
+    pub fn from_toml(input_string: String, checklist_name: String) -> Checklist {
+        match toml::from_str::<ChecklistItems>(&input_string) {
+            Ok(checklist_items) => {
+                return Checklist {
+                    items: checklist_items.items,
+                    name: checklist_name,
+                };
+            }
+            Err(_) => {
+                panic!("Failed to ChecklistItems from TOML");
+            }
+        }
+    }
 }
+
 fn extract_checklist_name(input_string: String) -> String {
     debug!(
         "[extract_checklist_name] Extracting name from : {:?}",
@@ -131,24 +183,17 @@ fn extract_checklist_name(input_string: String) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::libs::logger::setup_logger;
-    use log::LevelFilter;
 
-    fn setup() {
-        setup_logger(LevelFilter::Info) // Change this to Debug if you need debug logs
-    }
-
-    // extract_checklist Tests
-    #[test]
-    fn extract_checklist_from_markdown_simple_single_item() {
-        setup();
+    // Checklist Tests
+    #[test_log::test]
+    fn create_new_checklist_from_markdown_simple_single_item() {
         let markdown_input = r#"
 # Example Heading
 Example paragraph with **lorem** _ipsum_ text.
 <!-- checklist -->
 - [x] test checklist item
         "#;
-        let checklist = extract_checklist(String::from(markdown_input));
+        let checklist = Checklist::new(String::from(markdown_input));
         let mut test_checklist = Checklist {
             name: "checklist".to_string(),
             items: Vec::new(),
@@ -162,16 +207,15 @@ Example paragraph with **lorem** _ipsum_ text.
         assert_eq!(test_checklist.items, checklist.items)
     }
 
-    #[test]
-    fn extract_checklist_from_markdown_simple_single_optional_item() {
-        setup();
+    #[test_log::test]
+    fn create_new_checklist_from_markdown_simple_single_optional_item() {
         let markdown_input = r#"
 # Example Heading
 Example paragraph with **lorem** _ipsum_ text.
 <!-- checklist -->
 - [x] test checklist item [OPTIONAL]
         "#;
-        let checklist = extract_checklist(String::from(markdown_input));
+        let checklist = Checklist::new(String::from(markdown_input));
         let mut test_checklist = Checklist {
             name: "checklist".to_string(),
             items: Vec::new(),
@@ -185,9 +229,8 @@ Example paragraph with **lorem** _ipsum_ text.
         assert_eq!(test_checklist.items, checklist.items);
     }
 
-    #[test]
-    fn extract_checklist_from_markdown_simple_multiple_items() {
-        setup();
+    #[test_log::test]
+    fn create_new_checklist_from_markdown_simple_multiple_items() {
         let markdown_input = r#"
 # Example Heading
 Example paragraph with **lorem** _ipsum_ text.
@@ -195,7 +238,7 @@ Example paragraph with **lorem** _ipsum_ text.
 - [x] test checklist item 1
 - [x] test checklist item 2
         "#;
-        let checklist = extract_checklist(String::from(markdown_input));
+        let checklist = Checklist::new(String::from(markdown_input));
         let mut test_checklist = Checklist {
             name: "checklist".to_string(),
             items: Vec::new(),
@@ -214,9 +257,8 @@ Example paragraph with **lorem** _ipsum_ text.
         assert_eq!(test_checklist.items, checklist.items)
     }
 
-    #[test]
-    fn extract_checklist_from_markdown_mixed_lists_multiple_items() {
-        setup();
+    #[test_log::test]
+    fn create_new_checklist_from_markdown_mixed_lists_multiple_items() {
         let markdown_input = r#"
 # Example Heading
 Example paragraph with **lorem** _ipsum_ text.
@@ -227,7 +269,7 @@ Example paragraph with **lorem** _ipsum_ text.
 - [x] test not checklist item 1
 - [x] test not checklist item 2
         "#;
-        let checklist = extract_checklist(String::from(markdown_input));
+        let checklist = Checklist::new(String::from(markdown_input));
         let mut test_checklist = Checklist {
             name: "".to_string(),
             items: Vec::new(),
@@ -245,16 +287,15 @@ Example paragraph with **lorem** _ipsum_ text.
         assert_eq!(test_checklist.items, checklist.items)
     }
 
-    #[test]
-    fn extract_checklist_from_markdown_single_item_containing_markdown_formating() {
-        setup();
+    #[test_log::test]
+    fn create_new_checklist_from_markdown_single_item_containing_markdown_formating() {
         let markdown_input = r#"
 # Example Heading
 Example paragraph with **lorem** _ipsum_ text.
 <!-- checklist -->
 - [x] Example paragraph with **lorem** _ipsum_ text.
         "#;
-        let checklist = extract_checklist(String::from(markdown_input));
+        let checklist = Checklist::new(String::from(markdown_input));
         let mut test_checklist = Checklist {
             name: "checklist".to_string(),
             items: Vec::new(),
@@ -268,8 +309,7 @@ Example paragraph with **lorem** _ipsum_ text.
     }
 
     #[test]
-    fn extract_checklist_from_markdown_no_checklist() {
-        // setup();
+    fn create_new_checklist_from_markdown_no_checklist() {
         testing_logger::setup();
         let markdown_input = r#"
 # Example Heading
@@ -279,7 +319,7 @@ Example paragraph with **lorem** _ipsum_ text.
 - [x] test not checklist item 3
 - [x] test not checklist item 4
         "#;
-        let checklist = extract_checklist(String::from(markdown_input));
+        let checklist = Checklist::new(String::from(markdown_input));
         let test_checklist = Checklist {
             name: "checklist".to_string(),
             items: Vec::new(),
@@ -300,26 +340,52 @@ Example paragraph with **lorem** _ipsum_ text.
         });
     }
 
+    #[test_log::test]
+    fn save_and_load_checklist() {
+        let mut test_checklist = Checklist {
+            name: "test_checklist".to_string(),
+            items: Vec::new(),
+        };
+        test_checklist.items.push(ChecklistItem {
+            text: "test checklist item 1".to_string(),
+            optional: false,
+            resolved: false,
+        });
+        test_checklist.items.push(ChecklistItem {
+            text: "test checklist item 2".to_string(),
+            optional: false,
+            resolved: false,
+        });
+        let toml_string = test_checklist.to_toml();
+        assert_eq!(toml_string,"[[items]]\ntext = 'test checklist item 1'\noptional = false\nresolved = false\n\n[[items]]\ntext = 'test checklist item 2'\noptional = false\nresolved = false\n".to_string());
+
+        let reconstructed_checklist = Checklist::from_toml(toml_string,"test_checklist".to_string());
+        assert_eq!(reconstructed_checklist.items, test_checklist.items);
+    }
+
+    #[test_log::test]
+    #[should_panic]
+    fn load_non_checklist() {
+        let _checklist = Checklist::from_toml("nottoml".to_string(),"name".to_string());
+    }
+
     // extract_checklist_name Tests
-    #[test]
+    #[test_log::test]
     fn extract_checklist_name_no_name() {
-        setup();
         let markdown_input = "<!-- checklist -->";
         let checklist_name = extract_checklist_name(String::from(markdown_input));
         assert_eq!("checklist", checklist_name)
     }
 
-    #[test]
+    #[test_log::test]
     fn extract_checklist_name_name_following_spec() {
-        setup();
         let markdown_input = "<!-- checklist = 'test_name' -->";
         let checklist_name = extract_checklist_name(String::from(markdown_input));
         assert_eq!("test_name", checklist_name)
     }
 
-    #[test]
+    #[test_log::test]
     fn extract_checklist_name_name_not_following_spec() {
-        setup();
         let markdown_input = "<!-- blah = 'test_name' -->";
         let checklist_name = extract_checklist_name(String::from(markdown_input));
         assert_eq!("checklist", checklist_name)
