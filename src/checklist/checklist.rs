@@ -1,9 +1,9 @@
-use log::{debug, error, info, warn};
+use log::{debug, warn};
 use pulldown_cmark::{Event, Options, Parser, Tag};
 use serde_derive::{Deserialize, Serialize};
 use toml::Value;
 
-#[derive(Clone,Debug)]
+#[derive(Clone, Debug)]
 pub struct Checklist {
     pub items: Vec<ChecklistItem>,
     pub name: String,
@@ -146,6 +146,24 @@ impl Checklist {
                 panic!("Failed to ChecklistItems from TOML");
             }
         }
+    }
+
+    #[allow(dead_code)]
+    pub fn generate_test_checklist(count: u8,name: String) -> Checklist {
+        let mut test_checklist = Checklist {
+            items: Vec::<ChecklistItem>::new(),
+            name: name.clone(),
+        };
+
+        for i in 1..count {
+            test_checklist.items.push(ChecklistItem {
+                text: format!("{} item {:}", &name, i),
+                optional: false,
+                resolved: false,
+            })
+        }
+
+        return test_checklist;
     }
 }
 
@@ -359,14 +377,15 @@ Example paragraph with **lorem** _ipsum_ text.
         let toml_string = test_checklist.to_toml();
         assert_eq!(toml_string,"[[items]]\ntext = 'test checklist item 1'\noptional = false\nresolved = false\n\n[[items]]\ntext = 'test checklist item 2'\noptional = false\nresolved = false\n".to_string());
 
-        let reconstructed_checklist = Checklist::from_toml(toml_string,"test_checklist".to_string());
+        let reconstructed_checklist =
+            Checklist::from_toml(toml_string, "test_checklist".to_string());
         assert_eq!(reconstructed_checklist.items, test_checklist.items);
     }
 
     #[test_log::test]
     #[should_panic]
     fn load_non_checklist() {
-        let _checklist = Checklist::from_toml("nottoml".to_string(),"name".to_string());
+        let _checklist = Checklist::from_toml("nottoml".to_string(), "name".to_string());
     }
 
     // extract_checklist_name Tests
