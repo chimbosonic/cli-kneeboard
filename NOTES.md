@@ -19,11 +19,12 @@ See [SPEC.md](./SPEC.md)
 
 ## To-do
 
-- [] Read in an MD file and find the checklist
-- [] Save a temporary hidden file with Saved Progress recorded
-- [] CLI option to not save progress
+- [x] Read in an MD file and find the checklist
+- [x] Save a temporary hidden file with Saved Progress recorded
+- [x] CLI option to not save progress
 - [x] Implement Verbosity and proper logging
 - [x] Implement UI to display the checklist
 - [x] Parse Checklist SPEC
 - [x] Parse Saved Progress SPEC
 - [x] Generate Saved Progress SPEC
+- [x] on exit we return a ExitCode = to number of unresolved items

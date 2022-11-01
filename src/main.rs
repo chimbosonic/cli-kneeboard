@@ -14,7 +14,7 @@ use clap::{Parser as clapParser};
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// Path to the checklist
-    #[clap(short, long, value_parser)]
+    #[clap(short, long, value_parser, required(true))]
     checklist_path: Option<String>,
 
     /// Save progress of the checklist
