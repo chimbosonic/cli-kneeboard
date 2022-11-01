@@ -1,3 +1,4 @@
+
 use log::{debug, warn};
 use pulldown_cmark::{Event, Options, Parser, Tag};
 use serde_derive::{Deserialize, Serialize};
@@ -57,7 +58,22 @@ impl Checklist {
             match &event {
                 Event::Start(tag) => match tag {
                     Tag::List(_) => is_list = true,
-                    Tag::Item => is_list_item = true,
+                    Tag::Item => {
+                        if is_list && is_checklist && is_list_item {
+                            debug!(
+                                "[extract_checklist] Adding ChecklistItem: {:?}",
+                                checklist_item
+                            );
+                            checklist.items.push(checklist_item.clone());
+
+                            checklist_item = ChecklistItem {
+                                text: "".to_string(),
+                                optional: false,
+                                resolved: false,
+                            }
+                        }
+                        is_list_item = true;
+                    },
                     _ => (),
                 },
                 Event::Text(s) => {
@@ -149,13 +165,13 @@ impl Checklist {
     }
 
     #[allow(dead_code)]
-    pub fn generate_test_checklist(count: u8,name: String) -> Checklist {
+    pub fn generate_test_checklist(count: u128, name: String) -> Checklist {
         let mut test_checklist = Checklist {
             items: Vec::<ChecklistItem>::new(),
             name: name.clone(),
         };
 
-        for i in 1..count {
+        for i in 0..count {
             test_checklist.items.push(ChecklistItem {
                 text: format!("{} item {:}", &name, i),
                 optional: false,
@@ -164,6 +180,17 @@ impl Checklist {
         }
 
         return test_checklist;
+    }
+
+    //This will return a u8 and is allowed to overflow this is because we use it as a ExitCode which has to be a u8
+    pub fn get_count_unresolved(&self) -> u8 {
+        let mut count:  u8 = 0;
+        for checklist_item in &self.items {
+            if !&checklist_item.resolved {
+                count =count.wrapping_add(1);
+            }
+        }
+        return count;
     }
 }
 
@@ -306,6 +333,32 @@ Example paragraph with **lorem** _ipsum_ text.
     }
 
     #[test_log::test]
+    fn create_new_checklist_from_markdown_with_nested_items() {
+        let markdown_input = r#"
+<!-- checklist -->
+- [ ] test checklist item
+    - [ ] test checklist nested item
+<!-- checklist -->
+        "#;
+        let checklist = Checklist::new(String::from(markdown_input));
+        let mut test_checklist = Checklist {
+            name: "".to_string(),
+            items: Vec::new(),
+        };
+        test_checklist.items.push(ChecklistItem {
+            text: "test checklist item".to_string(),
+            optional: false,
+            resolved: false,
+        });
+        test_checklist.items.push(ChecklistItem {
+            text: "test checklist nested item".to_string(),
+            optional: false,
+            resolved: false,
+        });
+        assert_eq!(test_checklist.items, checklist.items)
+    }
+
+    #[test_log::test]
     fn create_new_checklist_from_markdown_single_item_containing_markdown_formating() {
         let markdown_input = r#"
 # Example Heading
@@ -381,6 +434,20 @@ Example paragraph with **lorem** _ipsum_ text.
             Checklist::from_toml(toml_string, "test_checklist".to_string());
         assert_eq!(reconstructed_checklist.items, test_checklist.items);
     }
+
+    #[test_log::test]
+    fn generate_test_checklist() {
+        let test_checklist = Checklist::generate_test_checklist(300, "test checklist".to_string());
+        assert_eq!(test_checklist.items.len(),300);
+    }
+
+    #[test_log::test]
+    fn count_unresolved_checklist() {
+        let test_checklist = Checklist::generate_test_checklist(300, "test checklist".to_string());
+        assert_eq!(test_checklist.items.len(),300);
+        assert_eq!(test_checklist.get_count_unresolved(),44);
+    }
+
 
     #[test_log::test]
     #[should_panic]
