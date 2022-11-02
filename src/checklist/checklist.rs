@@ -38,7 +38,7 @@ impl From<Checklist> for ChecklistItems {
 }
 
 impl Checklist {
-    pub fn new(markdown_input: String) -> Checklist {
+    pub fn from_markdown(markdown_input: String) -> Result<Checklist,&'static str> {
         let mut checklist = Checklist {
             name: "".to_string(),
             items: Vec::new(),
@@ -113,11 +113,12 @@ impl Checklist {
         }
 
         if checklist.items.len() == 0 {
-            warn!("[extract_checklist] Found No Checklist or and Items returning Empty Checklist")
+            warn!("[extract_checklist] Found No Checklist or and Items returning Empty Checklist");
+            return Err("[extract_checklist] Found No Checklist or and Items returning Empty Checklist");
         }
 
         checklist = checklist.set_optionality();
-        return checklist;
+        return Ok(checklist);
     }
 
     fn set_optionality(mut self) -> Checklist {
@@ -136,36 +137,36 @@ impl Checklist {
 
     /// Checklist serialize as TOML
     /// panic if we fail
-    pub fn to_toml(&self) -> String {
+    pub fn to_toml(&self) -> Result<String,&'static str> {
         let temp: ChecklistItems = self.to_owned().into();
         match toml::to_string_pretty(&temp) {
             Ok(s) => {
-                return s;
+                return Ok(s);
             }
             Err(_) => {
-                panic!("Failed to generate TOML");
+                return Err("[to_toml] failed to generate toml");
             }
         }
     }
 
     /// Desirialize TOML into Checklist
     /// panic if we fail
-    pub fn from_toml(input_string: String, checklist_name: String) -> Checklist {
+    pub fn from_toml(input_string: String, checklist_name: String) -> Result<Checklist, &'static str> {
         match toml::from_str::<ChecklistItems>(&input_string) {
             Ok(checklist_items) => {
-                return Checklist {
+                return Ok(Checklist {
                     items: checklist_items.items,
                     name: checklist_name,
-                };
+                });
             }
             Err(_) => {
-                panic!("Failed to ChecklistItems from TOML");
+                return Err("[from_toml] failed parse ChecklistItems from TOML");
             }
         }
     }
 
     #[allow(dead_code)]
-    pub fn generate_test_checklist(count: u128, name: String) -> Checklist {
+    pub fn generate_test_checklist(count: u128, name: String, optional: Option<bool>) -> Checklist {
         let mut test_checklist = Checklist {
             items: Vec::<ChecklistItem>::new(),
             name: name.clone(),
@@ -174,7 +175,7 @@ impl Checklist {
         for i in 0..count {
             test_checklist.items.push(ChecklistItem {
                 text: format!("{} item {:}", &name, i),
-                optional: false,
+                optional: optional.unwrap_or(false),
                 resolved: false,
             })
         }
@@ -186,12 +187,13 @@ impl Checklist {
     pub fn get_count_unresolved(&self) -> u8 {
         let mut count:  u8 = 0;
         for checklist_item in &self.items {
-            if !&checklist_item.resolved {
+            if !&checklist_item.resolved && !&checklist_item.optional{
                 count =count.wrapping_add(1);
             }
         }
         return count;
     }
+
 }
 
 fn extract_checklist_name(input_string: String) -> String {
@@ -227,6 +229,8 @@ fn extract_checklist_name(input_string: String) -> String {
 // Unit Tests all internal functions must be tested here. At least one test per function unless impossible
 #[cfg(test)]
 mod tests {
+    // use log::Level;
+
     use super::*;
 
     // Checklist Tests
@@ -238,7 +242,7 @@ Example paragraph with **lorem** _ipsum_ text.
 <!-- checklist -->
 - [x] test checklist item
         "#;
-        let checklist = Checklist::new(String::from(markdown_input));
+        let checklist = Checklist::from_markdown(String::from(markdown_input)).unwrap();
         let mut test_checklist = Checklist {
             name: "checklist".to_string(),
             items: Vec::new(),
@@ -260,7 +264,7 @@ Example paragraph with **lorem** _ipsum_ text.
 <!-- checklist -->
 - [x] test checklist item [OPTIONAL]
         "#;
-        let checklist = Checklist::new(String::from(markdown_input));
+        let checklist = Checklist::from_markdown(String::from(markdown_input)).unwrap();
         let mut test_checklist = Checklist {
             name: "checklist".to_string(),
             items: Vec::new(),
@@ -283,7 +287,7 @@ Example paragraph with **lorem** _ipsum_ text.
 - [x] test checklist item 1
 - [x] test checklist item 2
         "#;
-        let checklist = Checklist::new(String::from(markdown_input));
+        let checklist = Checklist::from_markdown(String::from(markdown_input)).unwrap();
         let mut test_checklist = Checklist {
             name: "checklist".to_string(),
             items: Vec::new(),
@@ -314,7 +318,7 @@ Example paragraph with **lorem** _ipsum_ text.
 - [x] test not checklist item 1
 - [x] test not checklist item 2
         "#;
-        let checklist = Checklist::new(String::from(markdown_input));
+        let checklist = Checklist::from_markdown(String::from(markdown_input)).unwrap();
         let mut test_checklist = Checklist {
             name: "".to_string(),
             items: Vec::new(),
@@ -340,7 +344,7 @@ Example paragraph with **lorem** _ipsum_ text.
     - [ ] test checklist nested item
 <!-- checklist -->
         "#;
-        let checklist = Checklist::new(String::from(markdown_input));
+        let checklist = Checklist::from_markdown(String::from(markdown_input)).unwrap();
         let mut test_checklist = Checklist {
             name: "".to_string(),
             items: Vec::new(),
@@ -366,7 +370,7 @@ Example paragraph with **lorem** _ipsum_ text.
 <!-- checklist -->
 - [x] Example paragraph with **lorem** _ipsum_ text.
         "#;
-        let checklist = Checklist::new(String::from(markdown_input));
+        let checklist = Checklist::from_markdown(String::from(markdown_input)).unwrap();
         let mut test_checklist = Checklist {
             name: "checklist".to_string(),
             items: Vec::new(),
@@ -379,9 +383,9 @@ Example paragraph with **lorem** _ipsum_ text.
         assert_eq!(test_checklist.items, checklist.items)
     }
 
-    #[test]
+    #[test_log::test]
+    #[should_panic]
     fn create_new_checklist_from_markdown_no_checklist() {
-        testing_logger::setup();
         let markdown_input = r#"
 # Example Heading
 Example paragraph with **lorem** _ipsum_ text.
@@ -390,25 +394,7 @@ Example paragraph with **lorem** _ipsum_ text.
 - [x] test not checklist item 3
 - [x] test not checklist item 4
         "#;
-        let checklist = Checklist::new(String::from(markdown_input));
-        let test_checklist = Checklist {
-            name: "checklist".to_string(),
-            items: Vec::new(),
-        };
-        assert_eq!(test_checklist.items, checklist.items);
-
-        testing_logger::validate(|captured_logs| {
-            let warnings = captured_logs
-                .iter()
-                .filter(|c| c.level == log::Level::Warn)
-                .collect::<Vec<&testing_logger::CapturedLog>>();
-
-            assert_eq!(warnings.len(), 1);
-            assert_eq!(
-                warnings[0].body,
-                "[extract_checklist] Found No Checklist or and Items returning Empty Checklist"
-            );
-        });
+        let _checklist = Checklist::from_markdown(String::from(markdown_input)).unwrap();
     }
 
     #[test_log::test]
@@ -427,32 +413,39 @@ Example paragraph with **lorem** _ipsum_ text.
             optional: false,
             resolved: false,
         });
-        let toml_string = test_checklist.to_toml();
+        let toml_string = test_checklist.to_toml().unwrap();
         assert_eq!(toml_string,"[[items]]\ntext = 'test checklist item 1'\noptional = false\nresolved = false\n\n[[items]]\ntext = 'test checklist item 2'\noptional = false\nresolved = false\n".to_string());
 
         let reconstructed_checklist =
-            Checklist::from_toml(toml_string, "test_checklist".to_string());
+            Checklist::from_toml(toml_string, "test_checklist".to_string()).unwrap();
         assert_eq!(reconstructed_checklist.items, test_checklist.items);
     }
 
     #[test_log::test]
     fn generate_test_checklist() {
-        let test_checklist = Checklist::generate_test_checklist(300, "test checklist".to_string());
+        let test_checklist = Checklist::generate_test_checklist(300, "test checklist".to_string(), None);
         assert_eq!(test_checklist.items.len(),300);
     }
 
     #[test_log::test]
     fn count_unresolved_checklist() {
-        let test_checklist = Checklist::generate_test_checklist(300, "test checklist".to_string());
+        let test_checklist = Checklist::generate_test_checklist(300, "test checklist".to_string(), None);
         assert_eq!(test_checklist.items.len(),300);
         assert_eq!(test_checklist.get_count_unresolved(),44);
+    }
+
+    #[test_log::test]
+    fn count_unresolved_optional_checklist() {
+        let test_checklist = Checklist::generate_test_checklist(300, "test checklist".to_string(), Some(true));
+        assert_eq!(test_checklist.items.len(),300);
+        assert_eq!(test_checklist.get_count_unresolved(),0);
     }
 
 
     #[test_log::test]
     #[should_panic]
     fn load_non_checklist() {
-        let _checklist = Checklist::from_toml("nottoml".to_string(), "name".to_string());
+        let _checklist = Checklist::from_toml("nottoml".to_string(), "name".to_string()).unwrap();
     }
 
     // extract_checklist_name Tests
