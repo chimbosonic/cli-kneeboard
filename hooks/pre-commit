@@ -1,0 +1,3 @@
+#!/bin/sh
+
+kneeboard -c .pre-commit-checklist.md
