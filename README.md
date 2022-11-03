@@ -4,25 +4,25 @@
 ![Build][actions]
 
 # cli-kneeboard
-`cli-kneeboard` is a small tool that reads Markdown Checklists and lets you programmatically run through them.
+`cli-kneeboard` is a tool that reads Markdown checklists and lets you programmatically run through them.
 
-It can also save the progress of a checklist in TOML allowing you to have reusable todo lists.
+It is capable of saving the progress of a checklist as TOML allowing you to have reusable to-do lists.
 
 When the app exits it will close with an ExitCode equal to the number of unresolved checklist items. This means you can use it as a git hook [example here](./hooks/pre-commit).
 
-## Setup
+## Installation
 
-### from our pipeline
+### From binaries
 - Go to [releases](https://github.com/chimbosonic/cli-kneeboard/releases) and download the latest binary for your architecture.
 - Extract the file and copy the binary to your `PATH`.
 
-### from crates.io
-- run `cargo install cli-kneeboard`
+### From source on crates.io
+- Run `cargo install cli-kneeboard`
 
-### from source
-- clone or download the repo
-- use `cargo run -- [OPTIONS]` to run the app in debug mode
-- or compile it with `cargo build --release` and get the binary from `./target/release/kneeboard`
+### From source on Github.com 
+- Clone or download the repo
+- Use `cargo run -- [OPTIONS]` to run the app in debug mode
+- Or compile it with `cargo build --release` and get the binary from `./target/release/kneeboard`
 
 ## Usage
 
@@ -47,7 +47,7 @@ OPTIONS:
 - `--save` || `-s` tells `cli-kneeboard` to save the progress of the checklist in the same folder as the checklist named `.<checklist-name>.kb.toml`
 - `--verbose` || `-v` lets you set verbosity the more `v`'s provided the higher the verbosity
 
-`cli-kneeboard` will read in a Checklist following the specification described in [SPEC.md](./SPEC.md)
+`cli-kneeboard` will read in a checklist following the specification described in [SPEC.md](./SPEC.md)
 
 <!-- Badges -->
 [crate]: https://crates.io/crates/cli-kneeboard "Crate Link"
