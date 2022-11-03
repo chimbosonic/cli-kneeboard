@@ -1,0 +1,99 @@
+name: release
+on:
+  release:
+    types:
+      - created
+
+env:
+  CARGO_TERM_COLOR: always
+jobs:
+  create-release-and-publish-crate:
+    runs-on: ubuntu-latest
+    outputs:
+      release_upload_url: ${{ steps.create_release.outputs.upload_url }}
+    steps:
+      - uses: actions/checkout@v2
+      
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          override: true
+
+      - name: Publish Crate
+        env:
+          crates_token: ${{ secrets.crates_token }}
+        run: cargo publish --locked --token ${crates_token} --verbose
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ github.ref }}
+          draft: false
+          prerelease: false
+
+  release-stable-x86_64-unknown-linux-gnu:
+    needs: create-release-and-publish-crate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable-x86_64-unknown-linux-gnu
+          override: true
+
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Package stable-x86_64-unknown-linux-gnu release
+        run: |
+          tar -cvzf kneeboard-stable-x86_64-unknown-linux-gnu.tar.gz README.md LICENSE -C ./target/release kneeboard 
+
+      - name: Upload stable-x86_64-unknown-linux-gnu Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release-and-publish-crate.outputs.release_upload_url }}
+          asset_path: kneeboard-stable-x86_64-unknown-linux-gnu.tar.gz
+          asset_name: kneeboard-stable-x86_64-unknown-linux-gnu.tar.gz
+          asset_content_type: application/gzip
+    
+  release-stable-x86_64-apple-darwin:
+    needs: create-release-and-publish-crate
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable-x86_64-apple-darwin
+          override: true
+
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --release
+
+      - name: Package stable-x86_64-apple-darwin release
+        run: |
+          tar -cvzf kneeboard-stable-x86_64-apple-darwin.tar.gz README.md LICENSE -C ./target/release kneeboard 
+
+      - name: Upload x86_64-apple-darwin Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ needs.create-release-and-publish-crate.outputs.release_upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: kneeboard-stable-x86_64-apple-darwin.tar.gz
+          asset_name: kneeboard-stable-x86_64-apple-darwin.tar.gz
+          asset_content_type: application/gzip

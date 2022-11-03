@@ -1,4 +1,3 @@
-
 use log::{debug, warn};
 use pulldown_cmark::{Event, Options, Parser, Tag};
 use serde_derive::{Deserialize, Serialize};
@@ -38,7 +37,7 @@ impl From<Checklist> for ChecklistItems {
 }
 
 impl Checklist {
-    pub fn from_markdown(markdown_input: String) -> Result<Checklist,&'static str> {
+    pub fn from_markdown(markdown_input: String) -> Result<Checklist, &'static str> {
         let mut checklist = Checklist {
             name: "".to_string(),
             items: Vec::new(),
@@ -73,7 +72,7 @@ impl Checklist {
                             }
                         }
                         is_list_item = true;
-                    },
+                    }
                     _ => (),
                 },
                 Event::Text(s) => {
@@ -114,7 +113,9 @@ impl Checklist {
 
         if checklist.items.len() == 0 {
             warn!("[extract_checklist] Found No Checklist or and Items returning Empty Checklist");
-            return Err("[extract_checklist] Found No Checklist or and Items returning Empty Checklist");
+            return Err(
+                "[extract_checklist] Found No Checklist or and Items returning Empty Checklist",
+            );
         }
 
         checklist = checklist.set_optionality();
@@ -137,7 +138,7 @@ impl Checklist {
 
     /// Checklist serialize as TOML
     /// panic if we fail
-    pub fn to_toml(&self) -> Result<String,&'static str> {
+    pub fn to_toml(&self) -> Result<String, &'static str> {
         let temp: ChecklistItems = self.to_owned().into();
         match toml::to_string_pretty(&temp) {
             Ok(s) => {
@@ -151,7 +152,10 @@ impl Checklist {
 
     /// Desirialize TOML into Checklist
     /// panic if we fail
-    pub fn from_toml(input_string: String, checklist_name: String) -> Result<Checklist, &'static str> {
+    pub fn from_toml(
+        input_string: String,
+        checklist_name: String,
+    ) -> Result<Checklist, &'static str> {
         match toml::from_str::<ChecklistItems>(&input_string) {
             Ok(checklist_items) => {
                 return Ok(Checklist {
@@ -185,15 +189,14 @@ impl Checklist {
 
     //This will return a u8 and is allowed to overflow this is because we use it as a ExitCode which has to be a u8
     pub fn get_count_unresolved(&self) -> u8 {
-        let mut count:  u8 = 0;
+        let mut count: u8 = 0;
         for checklist_item in &self.items {
-            if !&checklist_item.resolved && !&checklist_item.optional{
-                count =count.wrapping_add(1);
+            if !&checklist_item.resolved && !&checklist_item.optional {
+                count = count.wrapping_add(1);
             }
         }
         return count;
     }
-
 }
 
 fn extract_checklist_name(input_string: String) -> String {
@@ -423,24 +426,26 @@ Example paragraph with **lorem** _ipsum_ text.
 
     #[test_log::test]
     fn generate_test_checklist() {
-        let test_checklist = Checklist::generate_test_checklist(300, "test checklist".to_string(), None);
-        assert_eq!(test_checklist.items.len(),300);
+        let test_checklist =
+            Checklist::generate_test_checklist(300, "test checklist".to_string(), None);
+        assert_eq!(test_checklist.items.len(), 300);
     }
 
     #[test_log::test]
     fn count_unresolved_checklist() {
-        let test_checklist = Checklist::generate_test_checklist(300, "test checklist".to_string(), None);
-        assert_eq!(test_checklist.items.len(),300);
-        assert_eq!(test_checklist.get_count_unresolved(),44);
+        let test_checklist =
+            Checklist::generate_test_checklist(300, "test checklist".to_string(), None);
+        assert_eq!(test_checklist.items.len(), 300);
+        assert_eq!(test_checklist.get_count_unresolved(), 44);
     }
 
     #[test_log::test]
     fn count_unresolved_optional_checklist() {
-        let test_checklist = Checklist::generate_test_checklist(300, "test checklist".to_string(), Some(true));
-        assert_eq!(test_checklist.items.len(),300);
-        assert_eq!(test_checklist.get_count_unresolved(),0);
+        let test_checklist =
+            Checklist::generate_test_checklist(300, "test checklist".to_string(), Some(true));
+        assert_eq!(test_checklist.items.len(), 300);
+        assert_eq!(test_checklist.get_count_unresolved(), 0);
     }
-
 
     #[test_log::test]
     #[should_panic]
