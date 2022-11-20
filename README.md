@@ -10,6 +10,8 @@ It is capable of saving the progress of a checklist as TOML allowing you to have
 
 When the app exits it will close with an ExitCode equal to the number of unresolved checklist items. This means you can use it as a git hook [example here](./hooks/pre-commit).
 
+[![asciicast](https://asciinema.org/a/8tVyN78hH29YfFkIPF2YW91Dp.svg)](https://asciinema.org/a/8tVyN78hH29YfFkIPF2YW91Dp)
+
 ## Installation
 
 ### From binaries
