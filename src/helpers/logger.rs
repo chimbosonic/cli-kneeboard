@@ -1,7 +1,7 @@
-use chrono::Local;
 use env_logger::Builder;
 use log::LevelFilter;
 use std::io::Write;
+use time::{format_description::well_known::Rfc3339, OffsetDateTime};
 
 pub fn setup_logger(level: LevelFilter) {
     _ = Builder::new()
@@ -9,7 +9,7 @@ pub fn setup_logger(level: LevelFilter) {
             writeln!(
                 buf,
                 "{} [{}] - {}",
-                Local::now().format("%Y-%m-%dT%H:%M:%S"),
+                OffsetDateTime::now_utc().format(&Rfc3339).unwrap(),
                 record.level(),
                 record.args()
             )
