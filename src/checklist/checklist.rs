@@ -417,7 +417,7 @@ Example paragraph with **lorem** _ipsum_ text.
             resolved: false,
         });
         let toml_string = test_checklist.to_toml().unwrap();
-        assert_eq!(toml_string,"[[items]]\ntext = 'test checklist item 1'\noptional = false\nresolved = false\n\n[[items]]\ntext = 'test checklist item 2'\noptional = false\nresolved = false\n".to_string());
+        assert_eq!(toml_string,"[[items]]\ntext = \"test checklist item 1\"\noptional = false\nresolved = false\n\n[[items]]\ntext = \"test checklist item 2\"\noptional = false\nresolved = false\n".to_string());
 
         let reconstructed_checklist =
             Checklist::from_toml(toml_string, "test_checklist".to_string()).unwrap();

@@ -11,15 +11,15 @@ repository = "https://github.com/chimbosonic/cli-kneeboard"
 keywords = ["todo", "git-hook", "markdown", "git", "checklist"]
 
 [dependencies]
-clap = { version = "4.0.29", features = ["derive"] }
+clap = { version = "4.1.4", features = ["derive"] }
 env_logger = "0.10.0"
 log = "0.4.17"
 pulldown-cmark = "0.9.2"
-serde = "1.0.149"
-serde_derive = "1.0.149"
+serde = "1.0.152"
+serde_derive = "1.0.152"
 test-log = "0.2.11"
 testing_logger = "0.1.1"
-toml = "0.5.9"
+toml = "0.7.1"
 time = { version = "0.3.17", features = ["serde-well-known"] }
 
 [dependencies.cursive]
