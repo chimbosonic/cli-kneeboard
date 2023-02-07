@@ -12,7 +12,7 @@ jobs:
     outputs:
       release_upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       
       - uses: actions-rs/toolchain@v1
         with:
@@ -40,7 +40,7 @@ jobs:
     needs: create-release-and-publish-crate
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       
       - uses: actions-rs/toolchain@v1
         with:
@@ -71,7 +71,7 @@ jobs:
     needs: create-release-and-publish-crate
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       
       - uses: actions-rs/toolchain@v1
         with:
