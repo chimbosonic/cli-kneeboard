@@ -1,6 +1,6 @@
 [package]
 name = "cli-kneeboard"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 license = "GPL-3.0-only"
 authors = ["Alexis Lowe <agl314@chimbosonic.com>"]
@@ -19,7 +19,7 @@ serde = "1.0.152"
 serde_derive = "1.0.152"
 test-log = "0.2.11"
 testing_logger = "0.1.1"
-toml = "0.7.1"
+toml = "0.7.2"
 time = { version = "0.3.17", features = ["serde-well-known"] }
 
 [dependencies.cursive]
