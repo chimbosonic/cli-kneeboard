@@ -1,8 +1,8 @@
 [package]
 name = "cli-kneeboard"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2021"
-license = "GPL-3.0-only"
+license = "MIT"
 authors = ["Alexis Lowe <agl314@chimbosonic.com>"]
 description = "Checklist Tool"
 readme = "README.md"
