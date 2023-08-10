@@ -30,7 +30,6 @@ fn verbosity(level: u8) {
     match level {
         0 => {
             setup_logger(LevelFilter::Error);
-            error!("Verbosity Set to Error");
         }
         1 => {
             setup_logger(LevelFilter::Warn);
