@@ -1,5 +1,5 @@
-use crate::checklist::checklist::Checklist;
-use crate::checklist::checklist::ChecklistItem;
+use crate::checklist::Checklist;
+use crate::checklist::ChecklistItem;
 use cursive::theme::{BorderStyle, Palette};
 use cursive::traits::*;
 use cursive::views::{NamedView, Panel, ViewRef};
@@ -80,5 +80,5 @@ pub fn draw(checklist: Checklist) -> Checklist {
             })
         }
     }
-    return final_checklist;
+    final_checklist
 }

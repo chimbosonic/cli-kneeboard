@@ -3,7 +3,7 @@ mod helpers;
 
 use std::{fs, path::Path, process::ExitCode};
 
-use crate::checklist::checklist::Checklist;
+use crate::checklist::Checklist;
 use crate::helpers::logger::setup_logger;
 use crate::helpers::ui::draw;
 use log::{debug, error, info, warn, LevelFilter};
@@ -50,7 +50,7 @@ fn arg_to_checklist_file_path(path: Option<String>) -> String {
     match path {
         Some(string) => {
             debug!("checklist_path: {}", &string);
-            return string;
+            string
         }
         None => panic!("Missing checklist path"),
     }
@@ -64,20 +64,16 @@ fn main() -> ExitCode {
 
     if args.save {
         let checklist_from_file = load_checklist(&checklist_path); //Load the Checklist from Markdown File
-        let checklist_from_ui: Checklist;
-        match load_saved_checklist(&checklist_path, &checklist_from_file) {
-            Ok(checklist) => {
-                checklist_from_ui = draw(checklist);
-            }
-            Err(_) => {
-                checklist_from_ui = draw(checklist_from_file);
-            }
-        }
+        let checklist_from_ui: Checklist =
+            match load_saved_checklist(&checklist_path, &checklist_from_file) {
+                Ok(checklist) => draw(checklist),
+                Err(_) => draw(checklist_from_file),
+            };
         save_checklist(&checklist_from_ui, &checklist_path);
-        return ExitCode::from(checklist_from_ui.get_count_unresolved());
+        ExitCode::from(checklist_from_ui.get_count_unresolved())
     } else {
         let checklist_from_ui = draw(load_checklist(&checklist_path));
-        return ExitCode::from(checklist_from_ui.get_count_unresolved());
+        ExitCode::from(checklist_from_ui.get_count_unresolved())
     }
 }
 
@@ -87,9 +83,7 @@ fn load_checklist(path: &String) -> Checklist {
         Ok(unparsed_checklist) => {
             let checklist_result = Checklist::from_markdown(unparsed_checklist);
             match checklist_result {
-                Ok(checklist) => {
-                    return checklist;
-                }
+                Ok(checklist) => checklist,
                 Err(error) => {
                     panic!("{}", error);
                 }
@@ -134,20 +128,20 @@ fn load_saved_checklist(
                 let checklist_result =
                     Checklist::from_toml(unparsed_checklist, checklist.name.clone());
                 match checklist_result {
-                    Ok(checklist) => return Ok(checklist),
+                    Ok(checklist) => Ok(checklist),
                     Err(err) => {
                         error!("Failed to load save file:\n{:?}", err);
-                        return Err("Failed to load save file");
+                        Err("Failed to load save file")
                     }
                 }
             }
             Err(err) => {
                 error!("Failed to load save file:\n{:?}", err);
-                return Err("Failed to load save file");
+                Err("Failed to load save file")
             }
         }
     } else {
         error!("No save file found");
-        return Err("No save file found");
+        Err("No save file found")
     }
 }

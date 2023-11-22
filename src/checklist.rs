@@ -111,7 +111,7 @@ impl Checklist {
             };
         }
 
-        if checklist.items.len() == 0 {
+        if checklist.items.is_empty() {
             warn!("[extract_checklist] Found No Checklist or and Items returning Empty Checklist");
             return Err(
                 "[extract_checklist] Found No Checklist or and Items returning Empty Checklist",
@@ -119,7 +119,7 @@ impl Checklist {
         }
 
         checklist = checklist.set_optionality();
-        return Ok(checklist);
+        Ok(checklist)
     }
 
     fn set_optionality(mut self) -> Checklist {
@@ -133,7 +133,7 @@ impl Checklist {
             }
         }
 
-        return self;
+        self
     }
 
     /// Checklist serialize as TOML
@@ -141,12 +141,8 @@ impl Checklist {
     pub fn to_toml(&self) -> Result<String, &'static str> {
         let temp: ChecklistItems = self.to_owned().into();
         match toml::to_string_pretty(&temp) {
-            Ok(s) => {
-                return Ok(s);
-            }
-            Err(_) => {
-                return Err("[to_toml] failed to generate toml");
-            }
+            Ok(s) => Ok(s),
+            Err(_) => Err("[to_toml] failed to generate toml"),
         }
     }
 
@@ -157,15 +153,11 @@ impl Checklist {
         checklist_name: String,
     ) -> Result<Checklist, &'static str> {
         match toml::from_str::<ChecklistItems>(&input_string) {
-            Ok(checklist_items) => {
-                return Ok(Checklist {
-                    items: checklist_items.items,
-                    name: checklist_name,
-                });
-            }
-            Err(_) => {
-                return Err("[from_toml] failed parse ChecklistItems from TOML");
-            }
+            Ok(checklist_items) => Ok(Checklist {
+                items: checklist_items.items,
+                name: checklist_name,
+            }),
+            Err(_) => Err("[from_toml] failed parse ChecklistItems from TOML"),
         }
     }
 
@@ -184,7 +176,7 @@ impl Checklist {
             })
         }
 
-        return test_checklist;
+        test_checklist
     }
 
     //This will return a u8 and is allowed to overflow this is because we use it as a ExitCode which has to be a u8
@@ -195,7 +187,7 @@ impl Checklist {
                 count = count.wrapping_add(1);
             }
         }
-        return count;
+        count
     }
 }
 
@@ -226,7 +218,7 @@ fn extract_checklist_name(input_string: String) -> String {
         name = String::from("checklist");
     }
 
-    return name;
+    name
 }
 
 // Unit Tests all internal functions must be tested here. At least one test per function unless impossible
