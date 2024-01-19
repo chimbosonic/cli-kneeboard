@@ -7,12 +7,12 @@ on:
 env:
   CARGO_TERM_COLOR: always
 jobs:
-  create-release-and-publish-crate:
+  publish-crate:
     runs-on: ubuntu-latest
     outputs:
       release_upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -23,22 +23,10 @@ jobs:
           crates_token: ${{ secrets.crates_token }}
         run: cargo publish --locked --token ${crates_token} --verbose
 
-      - name: Create Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: Release ${{ github.ref }}
-          draft: false
-          prerelease: false
-
-  release-stable-x86_64-unknown-linux-gnu:
-    needs: create-release-and-publish-crate
+  build-stable-x86_64-unknown-linux-gnu:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -51,21 +39,15 @@ jobs:
         run: |
           tar -cvzf kneeboard-stable-x86_64-unknown-linux-gnu.tar.gz README.md LICENSE -C ./target/release kneeboard 
 
-      - name: Upload stable-x86_64-unknown-linux-gnu Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ needs.create-release-and-publish-crate.outputs.release_upload_url }}
-          asset_path: kneeboard-stable-x86_64-unknown-linux-gnu.tar.gz
-          asset_name: kneeboard-stable-x86_64-unknown-linux-gnu.tar.gz
-          asset_content_type: application/gzip
+          name: kneeboard-stable-x86_64-unknown-linux-gnu
+          path: kneeboard-stable-x86_64-unknown-linux-gnu.tar.gz
     
-  release-stable-x86_64-apple-darwin:
-    needs: create-release-and-publish-crate
+  build-stable-x86_64-apple-darwin:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -78,12 +60,31 @@ jobs:
         run: |
           tar -cvzf kneeboard-stable-x86_64-apple-darwin.tar.gz README.md LICENSE -C ./target/release kneeboard 
 
-      - name: Upload x86_64-apple-darwin Release Asset
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/upload-artifact@v4
         with:
-          upload_url: ${{ needs.create-release-and-publish-crate.outputs.release_upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: kneeboard-stable-x86_64-apple-darwin.tar.gz
-          asset_name: kneeboard-stable-x86_64-apple-darwin.tar.gz
-          asset_content_type: application/gzip
+          name: kneeboard-stable-x86_64-apple-darwin
+          path: kneeboard-stable-x86_64-apple-darwin.tar.gz
+
+  create-release:
+    needs: [build-stable-x86_64-unknown-linux-gnu,build-stable-x86_64-apple-darwin, publish-crate]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Darwin Build
+        uses: actions/download-artifact@v4
+        with:
+          name: kneeboard-stable-x86_64-apple-darwin
+          path:  ${{ github.workspace }}/builds/
+
+      - name: Download Linux Build
+        uses: actions/download-artifact@v4
+        with:
+          name: kneeboard-stable-x86_64-unknown-linux-gnu
+          path:  ${{ github.workspace }}/builds/
+
+      - uses: marvinpinto/action-automatic-releases@latest
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          prerelease: false
+          draft: false
+          files: |
+            ${{ github.workspace }}/builds/*
