@@ -6,7 +6,21 @@ on:
 
 env:
   CARGO_TERM_COLOR: always
-jobs:  
+jobs:
+  publish-crate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+
+      - name: Publish Crate
+        env:
+          crates_token: ${{ secrets.crates_token }}
+        run: cargo publish --locked --token ${crates_token} --verbose
+  
   build-linux-targets:
     name: Build targets
     uses: ./.github/workflows/_build_linux_target.yml
@@ -29,7 +43,7 @@ jobs:
     
 
   create-release:
-    needs: [build-linux-targets, build-macos-targets]
+    needs: [build-linux-targets, build-macos-targets, publish-crate]
     runs-on: ubuntu-latest
     steps:
       - name: Download Artifacts
