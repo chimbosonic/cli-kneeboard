@@ -1,3 +1,5 @@
+# Spec
+
 ## Checklist SPEC
 
 - Items can be nested
@@ -27,6 +29,8 @@
   - the `<name>` here is the name of the checklist defined by `<!-- checklist = 'name' -->`
 
 ```toml
+name = '<name>'
+
 [[items]]
 text = 'test checklist item 1'
 optional = false

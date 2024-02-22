@@ -1,9 +1,12 @@
 use log::{debug, warn};
-use pulldown_cmark::{Event, Options, Parser, Tag};
+use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
 use serde_derive::{Deserialize, Serialize};
+use std::error;
 use toml::Value;
 
-#[derive(Clone, Debug)]
+type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct Checklist {
     pub items: Vec<ChecklistItem>,
     pub name: String,
@@ -16,28 +19,18 @@ pub struct ChecklistItem {
     pub resolved: bool,
 }
 
-// This struct exist to help with Serialization of our Checklist
-#[derive(Deserialize, Serialize)]
-struct ChecklistItems {
-    items: Vec<ChecklistItem>,
-}
-
-impl From<Vec<ChecklistItem>> for ChecklistItems {
-    fn from(items: Vec<ChecklistItem>) -> Self {
-        ChecklistItems { items }
-    }
-}
-
-impl From<Checklist> for ChecklistItems {
-    fn from(checklist: Checklist) -> Self {
-        ChecklistItems {
-            items: checklist.items,
+impl Default for ChecklistItem {
+    fn default() -> Self {
+        ChecklistItem {
+            text: "".to_string(),
+            optional: false,
+            resolved: false,
         }
     }
 }
 
 impl Checklist {
-    pub fn from_markdown(markdown_input: String) -> Result<Checklist, &'static str> {
+    pub fn from_markdown(markdown_input: String) -> Result<Checklist> {
         let mut checklist = Checklist {
             name: "".to_string(),
             items: Vec::new(),
@@ -45,17 +38,11 @@ impl Checklist {
         let mut options = Options::empty();
         options.insert(Options::ENABLE_TASKLISTS);
         let parser = Parser::new_ext(&markdown_input, options);
-        let mut is_list = false;
-        let mut is_checklist = false;
-        let mut is_list_item = false;
-        let mut checklist_item = ChecklistItem {
-            text: "".to_string(),
-            optional: false,
-            resolved: false,
-        };
+        let (mut is_list, mut is_checklist, mut is_list_item) = (false, false, false);
+        let mut checklist_item = ChecklistItem::default();
         for event in parser {
             match &event {
-                Event::Start(tag) => match tag {
+                Event::Start(tag) => match *tag {
                     Tag::List(_) => is_list = true,
                     Tag::Item => {
                         if is_list && is_checklist && is_list_item {
@@ -65,11 +52,7 @@ impl Checklist {
                             );
                             checklist.items.push(checklist_item.clone());
 
-                            checklist_item = ChecklistItem {
-                                text: "".to_string(),
-                                optional: false,
-                                resolved: false,
-                            }
+                            checklist_item = ChecklistItem::default();
                         }
                         is_list_item = true;
                     }
@@ -81,9 +64,9 @@ impl Checklist {
                         checklist_item.text.push_str(s);
                     }
                 }
-                Event::End(tag) => match tag {
-                    Tag::List(_) => is_list = false,
-                    Tag::Item => {
+                Event::End(tag) => match *tag {
+                    TagEnd::List(_) => is_list = false,
+                    TagEnd::Item => {
                         is_list_item = false;
                         if is_list && is_checklist {
                             debug!(
@@ -92,11 +75,7 @@ impl Checklist {
                             );
                             checklist.items.push(checklist_item.clone());
 
-                            checklist_item = ChecklistItem {
-                                text: "".to_string(),
-                                optional: false,
-                                resolved: false,
-                            }
+                            checklist_item = ChecklistItem::default();
                         }
                     }
                     _ => (),
@@ -114,16 +93,11 @@ impl Checklist {
         if checklist.items.is_empty() {
             warn!("[extract_checklist] Found No Checklist or and Items returning Empty Checklist");
             return Err(
-                "[extract_checklist] Found No Checklist or and Items returning Empty Checklist",
+                "[extract_checklist] Found No Checklist or and Items returning Empty Checklist"
+                    .into(),
             );
         }
-
-        checklist = checklist.set_optionality();
-        Ok(checklist)
-    }
-
-    fn set_optionality(mut self) -> Checklist {
-        for checklist_item in self.items.iter_mut() {
+        for checklist_item in checklist.items.iter_mut() {
             if checklist_item.text.contains("[OPTIONAL]") {
                 debug!(
                     "[set_optionality] Setting {:?} to optional",
@@ -133,50 +107,21 @@ impl Checklist {
             }
         }
 
-        self
+        Ok(checklist)
     }
 
-    /// Checklist serialize as TOML
-    /// panic if we fail
-    pub fn to_toml(&self) -> Result<String, &'static str> {
-        let temp: ChecklistItems = self.to_owned().into();
-        match toml::to_string_pretty(&temp) {
+    pub fn to_toml(&self) -> Result<String> {
+        match toml::to_string_pretty(self) {
             Ok(s) => Ok(s),
-            Err(_) => Err("[to_toml] failed to generate toml"),
+            Err(_) => Err("[to_toml] failed to generate toml".into()),
         }
     }
 
-    /// Desirialize TOML into Checklist
-    /// panic if we fail
-    pub fn from_toml(
-        input_string: String,
-        checklist_name: String,
-    ) -> Result<Checklist, &'static str> {
-        match toml::from_str::<ChecklistItems>(&input_string) {
-            Ok(checklist_items) => Ok(Checklist {
-                items: checklist_items.items,
-                name: checklist_name,
-            }),
-            Err(_) => Err("[from_toml] failed parse ChecklistItems from TOML"),
+    pub fn from_toml(input_string: String) -> Result<Checklist> {
+        match toml::from_str::<Checklist>(&input_string) {
+            Ok(checklist) => Ok(checklist),
+            Err(_) => Err("[from_toml] failed parse ChecklistItems from TOML".into()),
         }
-    }
-
-    #[allow(dead_code)]
-    pub fn generate_test_checklist(count: u128, name: String, optional: Option<bool>) -> Checklist {
-        let mut test_checklist = Checklist {
-            items: Vec::<ChecklistItem>::new(),
-            name: name.clone(),
-        };
-
-        for i in 0..count {
-            test_checklist.items.push(ChecklistItem {
-                text: format!("{} item {:}", &name, i),
-                optional: optional.unwrap_or(false),
-                resolved: false,
-            })
-        }
-
-        test_checklist
     }
 
     //This will return a u8 and is allowed to overflow this is because we use it as a ExitCode which has to be a u8
@@ -227,6 +172,23 @@ mod tests {
     // use log::Level;
 
     use super::*;
+
+    fn generate_test_checklist(count: u128, name: String, optional: Option<bool>) -> Checklist {
+        let mut test_checklist = Checklist {
+            items: Vec::<ChecklistItem>::new(),
+            name: name.clone(),
+        };
+
+        for i in 0..count {
+            test_checklist.items.push(ChecklistItem {
+                text: format!("{} item {:}", &name, i),
+                optional: optional.unwrap_or(false),
+                resolved: false,
+            })
+        }
+
+        test_checklist
+    }
 
     // Checklist Tests
     #[test_log::test]
@@ -409,32 +371,28 @@ Example paragraph with **lorem** _ipsum_ text.
             resolved: false,
         });
         let toml_string = test_checklist.to_toml().unwrap();
-        assert_eq!(toml_string,"[[items]]\ntext = \"test checklist item 1\"\noptional = false\nresolved = false\n\n[[items]]\ntext = \"test checklist item 2\"\noptional = false\nresolved = false\n".to_string());
+        assert_eq!(toml_string,"name = \"test_checklist\"\n\n[[items]]\ntext = \"test checklist item 1\"\noptional = false\nresolved = false\n\n[[items]]\ntext = \"test checklist item 2\"\noptional = false\nresolved = false\n".to_string());
 
-        let reconstructed_checklist =
-            Checklist::from_toml(toml_string, "test_checklist".to_string()).unwrap();
+        let reconstructed_checklist = Checklist::from_toml(toml_string).unwrap();
         assert_eq!(reconstructed_checklist.items, test_checklist.items);
     }
 
     #[test_log::test]
-    fn generate_test_checklist() {
-        let test_checklist =
-            Checklist::generate_test_checklist(300, "test checklist".to_string(), None);
+    fn generate_test_checklist_test() {
+        let test_checklist = generate_test_checklist(300, "test checklist".to_string(), None);
         assert_eq!(test_checklist.items.len(), 300);
     }
 
     #[test_log::test]
     fn count_unresolved_checklist() {
-        let test_checklist =
-            Checklist::generate_test_checklist(300, "test checklist".to_string(), None);
+        let test_checklist = generate_test_checklist(300, "test checklist".to_string(), None);
         assert_eq!(test_checklist.items.len(), 300);
         assert_eq!(test_checklist.get_count_unresolved(), 44);
     }
 
     #[test_log::test]
     fn count_unresolved_optional_checklist() {
-        let test_checklist =
-            Checklist::generate_test_checklist(300, "test checklist".to_string(), Some(true));
+        let test_checklist = generate_test_checklist(300, "test checklist".to_string(), Some(true));
         assert_eq!(test_checklist.items.len(), 300);
         assert_eq!(test_checklist.get_count_unresolved(), 0);
     }
@@ -442,7 +400,7 @@ Example paragraph with **lorem** _ipsum_ text.
     #[test_log::test]
     #[should_panic]
     fn load_non_checklist() {
-        let _checklist = Checklist::from_toml("nottoml".to_string(), "name".to_string()).unwrap();
+        let _checklist = Checklist::from_toml("nottoml".to_string()).unwrap();
     }
 
     // extract_checklist_name Tests

@@ -15,6 +15,7 @@ Some Checklist items can be optional.
 A checklist is compatible with Markdown, so we can use them in GitHub `pull_request_template.md` as well. Allowing us to use one file to define the PR's checklist and the checklist we run during git hook.
 
 ## File Specs
+
 See [SPEC.md](./SPEC.md)
 
 ## To-do

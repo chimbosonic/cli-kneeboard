@@ -4,6 +4,7 @@
 ![Build][actions]
 
 # cli-kneeboard
+
 `cli-kneeboard` is a tool that reads Markdown checklists and lets you programmatically run through them.
 
 It is capable of saving the progress of a checklist as TOML allowing you to have reusable to-do lists.
@@ -15,13 +16,16 @@ When the app exits it will close with an ExitCode equal to the number of unresol
 ## Installation
 
 ### From binaries
+
 - Go to [releases](https://github.com/chimbosonic/cli-kneeboard/releases) and download the latest binary for your architecture.
 - Extract the file and copy the binary to your `PATH`.
 
 ### From source on crates.io
+
 - Run `cargo install cli-kneeboard`
 
-### From source on Github.com 
+### From source on Github.com
+
 - Clone or download the repo
 - Use `cargo run -- [OPTIONS]` to run the app in debug mode
 - Or compile it with `cargo build --release` and get the binary from `./target/release/kneeboard`

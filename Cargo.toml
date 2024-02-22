@@ -1,6 +1,6 @@
 [package]
 name = "cli-kneeboard"
-version = "0.2.2"
+version = "0.3.0"
 edition = "2021"
 license = "MIT"
 authors = ["Alexis Lowe <agl314@chimbosonic.com>"]
@@ -11,14 +11,14 @@ repository = "https://github.com/chimbosonic/cli-kneeboard"
 keywords = ["todo", "git-hook", "markdown", "git", "checklist"]
 
 [dependencies]
-clap = { version = "4.4.18", features = ["derive"] }
-env_logger = "0.10.2"
+clap = { version = "4.5.1", features = ["derive"] }
+env_logger = "0.11.2"
 log = "0.4.20"
-pulldown-cmark = "0.9.3"
-serde = "1.0.195"
-serde_derive = "1.0.195"
-toml = "0.8.8"
-time = { version = "0.3.31", features = ["serde-well-known"] }
+pulldown-cmark = "0.10.0"
+serde = "1.0.197"
+serde_derive = "1.0.197"
+toml = "0.8.10"
+time = { version = "0.3.34", features = ["serde-well-known"] }
 
 [dev-dependencies]
 test-log = "0.2.14"
@@ -39,3 +39,10 @@ strip = "debuginfo"
 lto = true
 panic = "abort"
 debug = false
+
+# Optimize local dev builds
+[profile.dev]
+opt-level = 1
+
+[profile.dev.package."*"]
+opt-level = 3

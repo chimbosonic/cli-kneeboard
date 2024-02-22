@@ -1,7 +1,7 @@
 mod checklist;
 mod helpers;
 
-use std::{fs, path::Path, process::ExitCode};
+use std::{error, fs, path::Path, process::ExitCode};
 
 use crate::checklist::Checklist;
 use crate::helpers::logger::setup_logger;
@@ -10,12 +10,14 @@ use log::{debug, error, info, warn, LevelFilter};
 
 use clap::Parser as clapParser;
 
+type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
+
 #[derive(clapParser, Debug)]
 #[clap(author, version, about, long_about = None)]
 struct Args {
     /// Path to the checklist
     #[clap(short, long, value_parser, required(true))]
-    checklist_path: Option<String>,
+    checklist_path: String,
 
     /// Save progress of the checklist
     #[clap(short, long, value_parser)]
@@ -46,102 +48,59 @@ fn verbosity(level: u8) {
     }
 }
 
-fn arg_to_checklist_file_path(path: Option<String>) -> String {
-    match path {
-        Some(string) => {
-            debug!("checklist_path: {}", &string);
-            string
-        }
-        None => panic!("Missing checklist path"),
-    }
+fn main() -> ExitCode {
+    main_sub().unwrap_or_else(|err| {
+        error!("Error: {}", err);
+        ExitCode::FAILURE
+    })
 }
 
-fn main() -> ExitCode {
+fn main_sub() -> Result<ExitCode> {
     let args = Args::parse();
     verbosity(args.verbose);
 
-    let checklist_path = arg_to_checklist_file_path(args.checklist_path);
+    let file_contents = fs::read_to_string(&args.checklist_path)?;
+    let checklist_from_file = Checklist::from_markdown(file_contents)?;
+
+    let checklist_from_ui: Checklist;
 
     if args.save {
-        let checklist_from_file = load_checklist(&checklist_path); //Load the Checklist from Markdown File
-        let checklist_from_ui: Checklist =
-            match load_saved_checklist(&checklist_path, &checklist_from_file) {
-                Ok(checklist) => draw(checklist),
-                Err(_) => draw(checklist_from_file),
-            };
-        save_checklist(&checklist_from_ui, &checklist_path);
-        ExitCode::from(checklist_from_ui.get_count_unresolved())
+        checklist_from_ui = match load_saved_checklist(&args.checklist_path, &checklist_from_file) {
+            Ok(checklist) => draw(checklist),
+            Err(_) => draw(checklist_from_file),
+        };
+        save_checklist(&checklist_from_ui, &args.checklist_path)?;
     } else {
-        let checklist_from_ui = draw(load_checklist(&checklist_path));
-        ExitCode::from(checklist_from_ui.get_count_unresolved())
+        checklist_from_ui = draw(checklist_from_file);
     }
+
+    Ok(ExitCode::from(checklist_from_ui.get_count_unresolved()))
 }
 
-fn load_checklist(path: &String) -> Checklist {
-    let file_contents = fs::read_to_string(path);
-    match file_contents {
-        Ok(unparsed_checklist) => {
-            let checklist_result = Checklist::from_markdown(unparsed_checklist);
-            match checklist_result {
-                Ok(checklist) => checklist,
-                Err(error) => {
-                    panic!("{}", error);
-                }
-            }
-        }
-        Err(err) => {
-            panic!("Something went wrong reading the file:\n{:?}", err)
-        }
-    }
+fn save_checklist(checklist: &Checklist, checklist_path: &String) -> Result<()> {
+    let checklist_as_toml = checklist.to_toml()?;
+    let checklist_path_dir = Path::new(checklist_path)
+        .parent()
+        .ok_or("Failed to find parent dir path")?;
+    let checklist_save_path = checklist_path_dir.join(format!(".{}.kb.toml", &checklist.name));
+    fs::write(&checklist_save_path, checklist_as_toml)?;
+    debug!(
+        "Save Checklist progress to {}",
+        &checklist_save_path.to_string_lossy()
+    );
+    Ok(())
 }
 
-fn save_checklist(checklist: &Checklist, checklist_path: &String) {
-    let checklist_as_toml_result = checklist.to_toml();
-    match checklist_as_toml_result {
-        Ok(checklist_as_toml) => {
-            let checklist_path_dir = Path::new(checklist_path).parent().unwrap();
-            let checklist_save_path =
-                checklist_path_dir.join(format!(".{}.kb.toml", &checklist.name));
-
-            match fs::write(&checklist_save_path, checklist_as_toml) {
-                Ok(_) => debug!(
-                    "Save Checklist progress to {}",
-                    &checklist_save_path.to_string_lossy()
-                ),
-                Err(err) => error!("Couldn't save progress:\n{:?}", err),
-            }
-        }
-        Err(err) => error!("Couldn't save progress:\n{:?}", err),
-    }
-}
-
-fn load_saved_checklist(
-    checklist_path: &String,
-    checklist: &Checklist,
-) -> Result<Checklist, &'static str> {
-    let checklist_path_dir = Path::new(checklist_path).parent().unwrap();
+fn load_saved_checklist(checklist_path: &String, checklist: &Checklist) -> Result<Checklist> {
+    let checklist_path_dir = Path::new(checklist_path)
+        .parent()
+        .ok_or("Failed to find parent dir path")?;
     let checklist_save_path = checklist_path_dir.join(format!(".{}.kb.toml", &checklist.name));
     if checklist_save_path.exists() {
-        let file_contents = fs::read_to_string(checklist_save_path);
-        match file_contents {
-            Ok(unparsed_checklist) => {
-                let checklist_result =
-                    Checklist::from_toml(unparsed_checklist, checklist.name.clone());
-                match checklist_result {
-                    Ok(checklist) => Ok(checklist),
-                    Err(err) => {
-                        error!("Failed to load save file:\n{:?}", err);
-                        Err("Failed to load save file")
-                    }
-                }
-            }
-            Err(err) => {
-                error!("Failed to load save file:\n{:?}", err);
-                Err("Failed to load save file")
-            }
-        }
+        let file_contents = fs::read_to_string(checklist_save_path)?;
+        Checklist::from_toml(file_contents)
     } else {
         error!("No save file found");
-        Err("No save file found")
+        Err("No save file found".into())
     }
 }
