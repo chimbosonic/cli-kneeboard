@@ -9,8 +9,6 @@ env:
 jobs:
   publish-crate:
     runs-on: ubuntu-latest
-    outputs:
-      release_upload_url: ${{ steps.create_release.outputs.upload_url }}
     steps:
       - uses: actions/checkout@v4
       
@@ -22,63 +20,35 @@ jobs:
         env:
           crates_token: ${{ secrets.crates_token }}
         run: cargo publish --locked --token ${crates_token} --verbose
-
-  build-stable-x86_64-unknown-linux-gnu:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          target: x86_64-unknown-linux-gnu
-
-      - run: cargo build --release
-
-      - name: Package stable-x86_64-unknown-linux-gnu release
-        run: |
-          tar -cvzf kneeboard-stable-x86_64-unknown-linux-gnu.tar.gz README.md LICENSE -C ./target/release kneeboard 
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: kneeboard-stable-x86_64-unknown-linux-gnu
-          path: kneeboard-stable-x86_64-unknown-linux-gnu.tar.gz
+  
+  build-linux-targets:
+    name: Build targets
+    uses: ./.github/workflows/_build_linux_target.yml
+    strategy:
+      matrix:
+       target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, aarch64-unknown-linux-musl, x86_64-unknown-linux-musl]
+    with:
+      target: ${{ matrix.target }}
+      channel: stable
+  
+  build-macos-targets:
+    name: Build targets
+    uses: ./.github/workflows/_build_macos_target.yml
+    strategy:
+      matrix:
+        target: [x86_64-apple-darwin, aarch64-apple-darwin]
+    with:
+      target: ${{ matrix.target }}
+      channel: stable
     
-  build-stable-x86_64-apple-darwin:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          target: x86_64-apple-darwin
-
-      - run: cargo build --release
-
-      - name: Package stable-x86_64-apple-darwin release
-        run: |
-          tar -cvzf kneeboard-stable-x86_64-apple-darwin.tar.gz README.md LICENSE -C ./target/release kneeboard 
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: kneeboard-stable-x86_64-apple-darwin
-          path: kneeboard-stable-x86_64-apple-darwin.tar.gz
 
   create-release:
-    needs: [build-stable-x86_64-unknown-linux-gnu,build-stable-x86_64-apple-darwin, publish-crate]
+    needs: [build-linux-targets, build-macos-targets, publish-crate]
     runs-on: ubuntu-latest
     steps:
-      - name: Download Darwin Build
+      - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: kneeboard-stable-x86_64-apple-darwin
-          path:  ${{ github.workspace }}/builds/
-
-      - name: Download Linux Build
-        uses: actions/download-artifact@v4
-        with:
-          name: kneeboard-stable-x86_64-unknown-linux-gnu
           path:  ${{ github.workspace }}/builds/
 
       - uses: marvinpinto/action-automatic-releases@latest

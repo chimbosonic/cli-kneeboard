@@ -1,0 +1,44 @@
+name: build_target
+
+on:  
+  workflow_call:
+    inputs:
+      target: 
+        type: string
+        description: 'Build target'
+        required: true
+      channel: 
+        type: string
+        description: 'Build target'
+        required: false
+        default: 'stable'
+
+env:
+  CARGO_TERM_COLOR: always
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        run: rustup update ${{inputs.channel}}
+      
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          toolchain: stable
+          targets: ${{inputs.target}}
+      
+      - run: cargo install cross --git https://github.com/cross-rs/cross
+
+      - run: cross build --release --target ${{inputs.target}}
+
+      - name: Package ${{inputs.channel}}-${{inputs.target}}
+        run: |
+          tar -cvzf kneeboard-${{inputs.channel}}-${{inputs.target}}.tar.gz README.md LICENSE -C ./target/${{inputs.target}}/release kneeboard 
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: kneeboard-${{inputs.channel}}-${{inputs.target}}
+          path: kneeboard-${{inputs.channel}}-${{inputs.target}}.tar.gz
+  
