@@ -49,6 +49,7 @@ jobs:
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
+          pattern: kneeboard-*
           path:  ${{ github.workspace }}/builds/
 
       - uses: marvinpinto/action-automatic-releases@latest
