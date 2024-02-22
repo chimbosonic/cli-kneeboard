@@ -50,6 +50,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           pattern: kneeboard-*
+          merge-multiple: true
           path:  ${{ github.workspace }}/builds/
 
       - uses: marvinpinto/action-automatic-releases@latest
