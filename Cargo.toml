@@ -1,6 +1,6 @@
 [package]
 name = "cli-kneeboard"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 license = "MIT"
 authors = ["Alexis Lowe <agl314@chimbosonic.com>"]
@@ -11,21 +11,21 @@ repository = "https://github.com/chimbosonic/cli-kneeboard"
 keywords = ["todo", "git-hook", "markdown", "git", "checklist"]
 
 [dependencies]
-clap = { version = "4.5.1", features = ["derive"] }
-env_logger = "0.11.2"
-log = "0.4.20"
-pulldown-cmark = "0.10.0"
-serde = "1.0.197"
-serde_derive = "1.0.197"
-toml = "0.8.10"
-time = { version = "0.3.34", features = ["serde-well-known"] }
+clap = { version = "4.5.16", features = ["derive"] }
+env_logger = "0.11.5"
+log = "0.4.22"
+pulldown-cmark = "0.12.0"
+serde = "1.0.209"
+serde_derive = "1.0.209"
+toml = "0.8.19"
+time = { version = "0.3.36", features = ["serde-well-known"] }
 
 [dev-dependencies]
-test-log = "0.2.14"
+test-log = "0.2.16"
 testing_logger = "0.1.1"
 
 [dependencies.cursive]
-version = "0.20.0"
+version = "0.21.1"
 default-features = false
 features = ["crossterm-backend"]
 
