@@ -6,7 +6,7 @@ use std::{error, fs, path::Path, process::ExitCode};
 use crate::checklist::Checklist;
 use crate::helpers::logger::setup_logger;
 use crate::helpers::ui::draw;
-use log::{debug, error, info, warn, LevelFilter};
+use log::{LevelFilter, debug, error, info, warn};
 
 use clap::Parser as clapParser;
 

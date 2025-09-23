@@ -2,7 +2,7 @@ use log::{debug, warn};
 use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd};
 use serde_derive::{Deserialize, Serialize};
 use std::error;
-use toml::Value;
+use toml::Table;
 
 type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
 
@@ -142,8 +142,10 @@ fn extract_checklist_name(input_string: String) -> String {
         input_string
     );
     let mut name = String::from("");
-    let input_string = input_string.replace(&['<', '!', '-', '>'][..], ""); // Remove HTML comment brackets
-    let result = input_string.parse::<Value>();
+    // Remove HTML comment brackets
+    let input_string = input_string.replace(&['<', '!', '-', '>'][..], "");
+    let input_string = input_string.trim();
+    let result = input_string.parse::<Table>();
     match result {
         Ok(value) => match value.get("checklist") {
             Some(val) => {
