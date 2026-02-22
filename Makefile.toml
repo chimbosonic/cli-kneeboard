@@ -1,0 +1,46 @@
+[config]
+default_to_workspace = false
+
+[tasks.format]
+command = "cargo"
+args = ["fmt"]
+
+[tasks.clean]
+command = "cargo"
+args = ["clean"]
+
+[tasks.lint]
+command = "cargo"
+args = ["clippy",
+	"--all-features",
+	"--",
+	"-W", "clippy::style",
+	"-W", "clippy::perf",
+	"-W", "clippy::complexity",
+	"-W", "clippy::suspicious",
+	"-W", "clippy::correctness"]
+
+[tasks.test]
+command = "cargo"
+args = ["test", "--all-features"]
+
+[tasks.test-run]
+command = "cargo"
+args = ["run", "--", "-c", "./__test__/test_checklists/test1.md"]
+
+[tasks.test-load-save]
+command = "cargo"
+args = ["run", "--", "-s", "-c", "./__test__/test_checklists/test1.md"]
+
+[tasks.install_hooks]
+script = '''
+cp ./hooks/pre-commit .git/hooks/
+chmod +x .git/hooks/pre-commit
+'''
+
+[tasks.pre-commit]
+dependencies = [
+    "format",
+    "lint",
+    "test"
+]

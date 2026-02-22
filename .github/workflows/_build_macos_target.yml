@@ -1,38 +1,38 @@
 name: build_target
 
-on:  
-  workflow_call:
-    inputs:
-      target: 
-        type: string
-        description: 'Build target'
-        required: true
-      channel: 
-        type: string
-        description: 'Build target'
-        required: false
-        default: 'stable'
+on:
+    workflow_call:
+        inputs:
+            target:
+                type: string
+                description: "Build target"
+                required: true
+            channel:
+                type: string
+                description: "Build target"
+                required: false
+                default: "stable"
 
 env:
-  CARGO_TERM_COLOR: always
+    CARGO_TERM_COLOR: always
 jobs:
-  build:
-    runs-on: macos-latest
-    steps:
-      - uses: actions/checkout@v4
-      
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: ${{inputs.channel}}
-          target: ${{inputs.target}}
+    build:
+        runs-on: macos-latest
+        steps:
+            - uses: actions/checkout@v6
 
-      - run: cargo build --release --target ${{inputs.target}}
+            - uses: dtolnay/rust-toolchain@stable
+              with:
+                  toolchain: ${{inputs.channel}}
+                  target: ${{inputs.target}}
 
-      - name: Package ${{inputs.channel}}-${{inputs.target}} release
-        run: |
-          tar -cvzf kneeboard-${{inputs.channel}}-${{inputs.target}}.tar.gz README.md LICENSE -C ./target/${{inputs.target}}/release kneeboard 
+            - run: cargo build --release --target ${{inputs.target}}
 
-      - uses: actions/upload-artifact@v4
-        with:
-          name: kneeboard-${{inputs.channel}}-${{inputs.target}}
-          path: kneeboard-${{inputs.channel}}-${{inputs.target}}.tar.gz
+            - name: Package ${{inputs.channel}}-${{inputs.target}} release
+              run: |
+                  tar -cvzf kneeboard-${{inputs.channel}}-${{inputs.target}}.tar.gz README.md LICENSE -C ./target/${{inputs.target}}/release kneeboard
+
+            - uses: actions/upload-artifact@v7
+              with:
+                  name: kneeboard-${{inputs.channel}}-${{inputs.target}}
+                  path: kneeboard-${{inputs.channel}}-${{inputs.target}}.tar.gz

@@ -1,56 +1,62 @@
 name: build
 on:
-  push:
-    branches: [ main ]
-  pull_request:
-    branches: [ main ]
+    push:
+        branches: [main]
+    pull_request:
+        branches: [main]
 env:
-  CARGO_TERM_COLOR: always
+    CARGO_TERM_COLOR: always
 
 jobs:
-  check:
-    name: Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+    check:
+        name: Check
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+            - uses: dtolnay/rust-toolchain@stable
+              with:
+                  toolchain: stable
+            - run: cargo check
+    test:
+        name: Test Suite
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+            - uses: dtolnay/rust-toolchain@stable
+              with:
+                  toolchain: stable
+            - run: cargo test
+    fmt:
+        name: Rustfmt
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v6
+            - uses: dtolnay/rust-toolchain@stable
+              with:
+                  toolchain: stable
+                  components: rustfmt
+            - run: cargo fmt --all -- --check
+    build-linux-targets:
+        name: Build targets
+        uses: ./.github/workflows/_build_linux_target.yml
+        strategy:
+            matrix:
+                target:
+                    [
+                        x86_64-unknown-linux-gnu,
+                        aarch64-unknown-linux-gnu,
+                        aarch64-unknown-linux-musl,
+                        x86_64-unknown-linux-musl,
+                    ]
         with:
-          toolchain: stable
-      - run: cargo check
-  test:
-    name: Test Suite
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
+            target: ${{ matrix.target }}
+            channel: stable
+    build-macos-targets:
+        name: Build targets
+        uses: ./.github/workflows/_build_macos_target.yml
+        strategy:
+            matrix:
+                target: [x86_64-apple-darwin, aarch64-apple-darwin]
         with:
-          toolchain: stable
-      - run: cargo test
-  fmt:
-    name: Rustfmt
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          toolchain: stable
-          components: rustfmt
-      - run: cargo fmt --all -- --check
-  build-linux-targets:
-    name: Build targets
-    uses: ./.github/workflows/_build_linux_target.yml
-    strategy:
-      matrix:
-        target: [x86_64-unknown-linux-gnu, aarch64-unknown-linux-gnu, aarch64-unknown-linux-musl, x86_64-unknown-linux-musl]
-    with:
-      target: ${{ matrix.target }}
-      channel: stable
-  build-macos-targets:
-    name: Build targets
-    uses: ./.github/workflows/_build_macos_target.yml
-    strategy:
-      matrix:
-        target: [x86_64-apple-darwin, aarch64-apple-darwin]
-    with:
-      target: ${{ matrix.target }}
-      channel: stable
+            target: ${{ matrix.target }}
+            channel: stable
