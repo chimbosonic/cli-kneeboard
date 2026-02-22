@@ -1,6 +1,6 @@
 [package]
 name = "cli-kneeboard"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2024"
 license = "MIT"
 authors = ["Alexis Lowe <agl314@chimbosonic.com>"]
