@@ -216,7 +216,7 @@ fn generate_test_checklist_test() {
 fn count_unresolved_checklist() {
     let test_checklist = generate_test_checklist(300, "test checklist".to_string(), None);
     assert_eq!(test_checklist.items.len(), 300);
-    assert_eq!(test_checklist.get_count_unresolved(), 44);
+    assert_eq!(test_checklist.get_count_unresolved(), 300);
 }
 
 #[test_log::test]

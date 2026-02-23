@@ -124,11 +124,11 @@ impl Checklist {
         }
     }
 
-    pub fn get_count_unresolved(&self) -> u8 {
-        let mut count: u8 = 0;
+    pub fn get_count_unresolved(&self) -> usize {
+        let mut count: usize = 0;
         for checklist_item in &self.items {
             if !&checklist_item.resolved && !&checklist_item.optional {
-                count = count.wrapping_add(1);
+                count += 1;
             }
         }
         count

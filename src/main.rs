@@ -74,7 +74,9 @@ fn main_sub() -> Result<ExitCode> {
         checklist_from_ui = draw(checklist_from_file);
     }
 
-    Ok(ExitCode::from(checklist_from_ui.get_count_unresolved()))
+    Ok(ExitCode::from(
+        std::cmp::min(checklist_from_ui.get_count_unresolved(), 255) as u8,
+    ))
 }
 
 fn save_checklist(checklist: &Checklist, checklist_path: &String) -> Result<()> {
