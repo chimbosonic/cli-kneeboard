@@ -43,6 +43,86 @@ Example paragraph with **lorem** _ipsum_ text.
 }
 
 #[test_log::test]
+fn from_markdown_single_item_marked_as_resolved() {
+    let markdown_input = r#"
+<!-- checklist -->
+- [x] test checklist item
+        "#;
+    let checklist = Checklist::from_markdown(String::from(markdown_input)).unwrap();
+    let mut test_checklist = Checklist {
+        name: "checklist".to_string(),
+        items: Vec::new(),
+    };
+    test_checklist.items.push(ChecklistItem {
+        text: "test checklist item".to_string(),
+        optional: false,
+        resolved: true,
+    });
+    assert_eq!(test_checklist.name, checklist.name);
+    assert_eq!(test_checklist.items, checklist.items)
+}
+
+#[test_log::test]
+fn from_markdown_single_item_marked_as_unresolved() {
+    let markdown_input = r#"
+<!-- checklist -->
+- [ ] test checklist item
+        "#;
+    let checklist = Checklist::from_markdown(String::from(markdown_input)).unwrap();
+    let mut test_checklist = Checklist {
+        name: "checklist".to_string(),
+        items: Vec::new(),
+    };
+    test_checklist.items.push(ChecklistItem {
+        text: "test checklist item".to_string(),
+        optional: false,
+        resolved: false,
+    });
+    assert_eq!(test_checklist.name, checklist.name);
+    assert_eq!(test_checklist.items, checklist.items)
+}
+
+#[test_log::test]
+fn from_markdown_single_item_invalid_checkbox() {
+    let markdown_input = r#"
+<!-- checklist -->
+- [] test checklist item
+        "#;
+    let checklist = Checklist::from_markdown(String::from(markdown_input)).unwrap();
+    let mut test_checklist = Checklist {
+        name: "checklist".to_string(),
+        items: Vec::new(),
+    };
+    test_checklist.items.push(ChecklistItem {
+        text: "[] test checklist item".to_string(),
+        optional: false,
+        resolved: false,
+    });
+    assert_eq!(test_checklist.name, checklist.name);
+    assert_eq!(test_checklist.items, checklist.items)
+}
+
+#[test_log::test]
+fn from_markdown_single_item_no_checkbox() {
+    let markdown_input = r#"
+<!-- checklist -->
+- test checklist item
+        "#;
+    let checklist = Checklist::from_markdown(String::from(markdown_input)).unwrap();
+    let mut test_checklist = Checklist {
+        name: "checklist".to_string(),
+        items: Vec::new(),
+    };
+    test_checklist.items.push(ChecklistItem {
+        text: "test checklist item".to_string(),
+        optional: false,
+        resolved: false,
+    });
+    assert_eq!(test_checklist.name, checklist.name);
+    assert_eq!(test_checklist.items, checklist.items)
+}
+
+#[test_log::test]
 fn create_new_checklist_from_markdown_simple_single_optional_item() {
     let markdown_input = r#"
 # Example Heading
@@ -135,7 +215,8 @@ fn create_new_checklist_from_markdown_with_nested_items() {
     let markdown_input = r#"
 <!-- checklist -->
 - [ ] test checklist item
-    - [ ] test checklist nested item
+    - [ ] test checklist nested item 1
+        - [ ] test checklist nested item 2
 <!-- checklist -->
         "#;
     let checklist = Checklist::from_markdown(String::from(markdown_input)).unwrap();
@@ -149,11 +230,37 @@ fn create_new_checklist_from_markdown_with_nested_items() {
         resolved: false,
     });
     test_checklist.items.push(ChecklistItem {
-        text: "test checklist nested item".to_string(),
+        text: "test checklist nested item 1".to_string(),
         optional: false,
         resolved: false,
     });
+    test_checklist.items.push(ChecklistItem {
+        text: "test checklist nested item 2".to_string(),
+        optional: false,
+        resolved: false,
+    });
+
     assert_eq!(test_checklist.items, checklist.items)
+}
+
+#[test_log::test]
+fn create_new_checklist_from_markdown_with_multi_nested_items() {
+    let markdown_input = r#"
+<!-- checklist -->
+- [ ] test checklist item
+    - [ ] test checklist nested item 1
+    - [ ] test checklist nested item 2
+    - [ ] test checklist item
+        - [ ] test checklist nested item 1
+        - [ ] test checklist nested item 2
+        - [ ] test checklist item
+- [ ] test checklist nested item 1
+- [ ] test checklist nested item 2
+<!-- checklist -->
+- [] Should not load me
+        "#;
+    let checklist = Checklist::from_markdown(String::from(markdown_input)).unwrap();
+    assert_eq!(checklist.get_count_unresolved(), 9)
 }
 
 #[test_log::test]

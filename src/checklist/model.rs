@@ -25,12 +25,20 @@ impl Checklist {
         let mut options = Options::empty();
         options.insert(Options::ENABLE_TASKLISTS);
         let parser = Parser::new_ext(&markdown_input, options);
-        let (mut is_list, mut is_checklist, mut is_list_item) = (false, false, false);
+        let (mut is_list, mut nested_list_level, mut is_checklist, mut is_list_item) =
+            (false, 0, false, false);
         let mut checklist_item = ChecklistItem::default();
         for event in parser {
             match &event {
                 Event::Start(tag) => match *tag {
-                    Tag::List(_) => is_list = true,
+                    Tag::List(_) => {
+                        debug!("[extract_checklist][event:start] List found");
+                        if is_list {
+                            nested_list_level += 1;
+                        }
+
+                        is_list = true
+                    }
                     Tag::Item => {
                         if is_list && is_checklist && is_list_item {
                             debug!(
@@ -62,14 +70,22 @@ impl Checklist {
                     }
                 }
                 Event::End(tag) => match *tag {
-                    TagEnd::List(_) => is_list = false,
+                    TagEnd::List(_) => {
+                        if nested_list_level > 0 {
+                            nested_list_level -= 1;
+                        } else {
+                            is_list = false;
+                        }
+                    }
                     TagEnd::Item => {
                         is_list_item = false;
                         if is_list && is_checklist {
                             debug!(
                                 "[extract_checklist][event:end] Adding ChecklistItem: {checklist_item:?}"
                             );
-                            checklist.items.push(checklist_item.clone());
+                            if !checklist_item.text.is_empty() {
+                                checklist.items.push(checklist_item.clone());
+                            }
 
                             checklist_item = ChecklistItem::default();
                         }
@@ -79,7 +95,15 @@ impl Checklist {
                 Event::Html(string) => {
                     if string.contains("checklist") && string.contains("<!--") {
                         checklist.name = extract_checklist_name(string.to_string());
-                        is_checklist ^= true
+                        if is_checklist {
+                            debug!("[extract_checklist][event:html] Found end of checklist");
+                            is_list = false;
+                            is_checklist = false;
+                        } else {
+                            debug!("[extract_checklist][event:html] Found start of checklist");
+                            is_checklist = true;
+                        }
+
                     }
                 }
                 _ => (),
