@@ -34,23 +34,21 @@ When the app exits it will close with an ExitCode equal to the number of unresol
 
 ```bash
 $ kneeboard --help
-cli-kneeboard 0.1.0
-Alexis Lowe <agl314@chimbosonic.com>
 Checklist Tool
 
-USAGE:
-    kneeboard [OPTIONS] --checklist-path <CHECKLIST_PATH>
+Usage: kneeboard [OPTIONS] --checklist-path <CHECKLIST_PATH>
 
-OPTIONS:
-    -c, --checklist-path <CHECKLIST_PATH>    Path to the checklist
-    -h, --help                               Print help information
-    -s, --save                               Save progress of the checklist
-    -v, --verbose                            Turn debugging information on
-    -V, --version                            Print version information
+Options:
+  -c, --checklist-path <CHECKLIST_PATH>  Path to the checklist
+  -s, --save                             Save and load progress of the checklist
+  -v, --verbose...                       Turn debugging information on
+      --headless                         Headless mode
+  -h, --help                             Print help
+  -V, --version                          Print version
 ```
 
 - `--checklist-path` || `-c` is required and is the path to the Markdown checklist you want to load
-- `--save` || `-s` tells `cli-kneeboard` to save the progress of the checklist in the same folder as the checklist named `.<checklist-name>.kb.toml`
+- `--save` || `-s` tells `cli-kneeboard` to save and load the progress from a previous run in the same folder as the checklist named `.<checklist-name-hash>.kb.toml`
 - `--verbose` || `-v` lets you set verbosity the more `v`'s provided the higher the verbosity
 
 `cli-kneeboard` will read in a checklist following the specification described in [SPEC.md](./SPEC.md)
