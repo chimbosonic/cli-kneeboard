@@ -1,3 +1,4 @@
 /target
 *.kb.toml
-kneeboard-*.tar.gz 
+!__test__/test_checklists/.21f98c40259cb4b4.kb.toml
+kneeboard-*.tar.gz

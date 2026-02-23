@@ -3,7 +3,7 @@ default_to_workspace = false
 
 [tasks.format]
 command = "cargo"
-args = ["fmt"]
+args = ["fmt", "--all"]
 
 [tasks.clean]
 command = "cargo"

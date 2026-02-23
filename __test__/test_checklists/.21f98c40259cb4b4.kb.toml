@@ -1,0 +1,16 @@
+name = "Test Checklist 3"
+
+[[items]]
+text = "Test Checklist 1 normal item"
+optional = false
+resolved = false
+
+[[items]]
+text = "Test Checklist 1 normal item 2"
+optional = false
+resolved = false
+
+[[items]]
+text = "Test Checklist 1 optional item [OPTIONAL]"
+optional = true
+resolved = false

@@ -103,7 +103,6 @@ impl Checklist {
                             debug!("[extract_checklist][event:html] Found start of checklist");
                             is_checklist = true;
                         }
-
                     }
                 }
                 _ => (),
@@ -152,6 +151,14 @@ impl Checklist {
             }
         }
         count
+    }
+
+    pub fn merge_checklist(&mut self, other: &Checklist) {
+        for item in &mut self.items {
+            if let Some(other_item) = other.items.iter().find(|i| i.text == item.text) {
+                item.resolved = item.resolved || other_item.resolved;
+            }
+        }
     }
 }
 
