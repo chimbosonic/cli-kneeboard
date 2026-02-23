@@ -5,6 +5,9 @@
 - Items can be nested
 - list marker can be `- | +| * | [0-9].`
 - Checkbox `[ ]` is not required but allowed
+- Checkbox `[ ]` must have a space in between the brackets
+- A Checkbox that is marked as `[ ]` is not resolved
+- A Checkbox that is marked as `[x]` is resolved
 - Optional item is marked by `[OPTIONAL]`
 - `<!-- checklist = 'name' -->` delimits the start and end of a checklist. End is optional
 - `checklist = 'name'` has to be valid toml. And key must be `checklist`

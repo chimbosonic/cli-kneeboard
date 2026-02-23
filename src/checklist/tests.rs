@@ -36,7 +36,7 @@ Example paragraph with **lorem** _ipsum_ text.
     test_checklist.items.push(ChecklistItem {
         text: "test checklist item".to_string(),
         optional: false,
-        resolved: false,
+        resolved: true,
     });
     assert_eq!(test_checklist.name, checklist.name);
     assert_eq!(test_checklist.items, checklist.items)
@@ -58,7 +58,7 @@ Example paragraph with **lorem** _ipsum_ text.
     test_checklist.items.push(ChecklistItem {
         text: "test checklist item [OPTIONAL]".to_string(),
         optional: true,
-        resolved: false,
+        resolved: true,
     });
     assert_eq!(test_checklist.name, checklist.name);
     assert_eq!(test_checklist.items, checklist.items);
@@ -71,7 +71,8 @@ fn create_new_checklist_from_markdown_simple_multiple_items() {
 Example paragraph with **lorem** _ipsum_ text.
 <!-- checklist - name -->
 - [x] test checklist item 1
-- [x] test checklist item 2
+- [ ] test checklist item 2
+- [] test checklist item 3
         "#;
     let checklist = Checklist::from_markdown(String::from(markdown_input)).unwrap();
     let mut test_checklist = Checklist {
@@ -81,10 +82,17 @@ Example paragraph with **lorem** _ipsum_ text.
     test_checklist.items.push(ChecklistItem {
         text: "test checklist item 1".to_string(),
         optional: false,
-        resolved: false,
+        resolved: true,
     });
     test_checklist.items.push(ChecklistItem {
         text: "test checklist item 2".to_string(),
+        optional: false,
+        resolved: false,
+    });
+
+    // A task marker must have a space in between the brackets
+    test_checklist.items.push(ChecklistItem {
+        text: "[] test checklist item 3".to_string(),
         optional: false,
         resolved: false,
     });
@@ -112,12 +120,12 @@ Example paragraph with **lorem** _ipsum_ text.
     test_checklist.items.push(ChecklistItem {
         text: "test checklist item 1".to_string(),
         optional: false,
-        resolved: false,
+        resolved: true,
     });
     test_checklist.items.push(ChecklistItem {
         text: "test checklist item 2".to_string(),
         optional: false,
-        resolved: false,
+        resolved: true,
     });
     assert_eq!(test_checklist.items, checklist.items)
 }
@@ -154,7 +162,7 @@ fn create_new_checklist_from_markdown_single_item_containing_markdown_formating(
 # Example Heading
 Example paragraph with **lorem** _ipsum_ text.
 <!-- checklist -->
-- [x] Example paragraph with **lorem** _ipsum_ text.
+- [ ] Example paragraph with **lorem** _ipsum_ text.
         "#;
     let checklist = Checklist::from_markdown(String::from(markdown_input)).unwrap();
     let mut test_checklist = Checklist {

@@ -23,6 +23,7 @@ args = ["clippy",
 [tasks.test]
 command = "cargo"
 args = ["test", "--all-features"]
+env = { "RUST_LOG" = "debug" }
 
 [tasks.test-run]
 command = "cargo"

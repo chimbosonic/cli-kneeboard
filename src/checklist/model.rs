@@ -6,35 +6,22 @@ use toml::Table;
 
 type Result<T> = std::result::Result<T, Box<dyn error::Error>>;
 
-#[derive(Clone, Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, Deserialize, Serialize, Default)]
 pub struct Checklist {
     pub items: Vec<ChecklistItem>,
     pub name: String,
 }
 
-#[derive(Debug, PartialEq, Clone, Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Clone, Serialize, Deserialize, Default)]
 pub struct ChecklistItem {
     pub text: String,
     pub optional: bool,
     pub resolved: bool,
 }
 
-impl Default for ChecklistItem {
-    fn default() -> Self {
-        ChecklistItem {
-            text: "".to_string(),
-            optional: false,
-            resolved: false,
-        }
-    }
-}
-
 impl Checklist {
     pub fn from_markdown(markdown_input: String) -> Result<Checklist> {
-        let mut checklist = Checklist {
-            name: "".to_string(),
-            items: Vec::new(),
-        };
+        let mut checklist = Checklist::default();
         let mut options = Options::empty();
         options.insert(Options::ENABLE_TASKLISTS);
         let parser = Parser::new_ext(&markdown_input, options);
@@ -47,8 +34,7 @@ impl Checklist {
                     Tag::Item => {
                         if is_list && is_checklist && is_list_item {
                             debug!(
-                                "[extract_checklist] Adding ChecklistItem: {:?}",
-                                checklist_item
+                                "[extract_checklist][event:start] Adding ChecklistItem: {checklist_item:?}"
                             );
                             checklist.items.push(checklist_item.clone());
 
@@ -58,10 +44,21 @@ impl Checklist {
                     }
                     _ => (),
                 },
-                Event::Text(s) => {
+                Event::Text(string) => {
                     if is_list && is_checklist && is_list_item {
-                        debug!("[extract_checklist] ChecklistItem Found text: {:?}", s);
-                        checklist_item.text.push_str(s);
+                        debug!(
+                            "[extract_checklist][event:text] ChecklistItem Found text: {string:?}"
+                        );
+                        checklist_item.text.push_str(string);
+                    }
+                }
+                Event::TaskListMarker(status) => {
+                    if is_list && is_checklist && is_list_item {
+                        debug!(
+                            "[extract_checklist][event:tasklistmarker] ChecklistItem Found TaskListMarker: {status:?}"
+                        );
+
+                        checklist_item.resolved = *status;
                     }
                 }
                 Event::End(tag) => match *tag {
@@ -70,8 +67,7 @@ impl Checklist {
                         is_list_item = false;
                         if is_list && is_checklist {
                             debug!(
-                                "[extract_checklist] Adding ChecklistItem: {:?}",
-                                checklist_item
+                                "[extract_checklist][event:end] Adding ChecklistItem: {checklist_item:?}"
                             );
                             checklist.items.push(checklist_item.clone());
 
@@ -80,9 +76,9 @@ impl Checklist {
                     }
                     _ => (),
                 },
-                Event::Html(s) => {
-                    if s.contains("checklist") && s.contains("<!--") {
-                        checklist.name = extract_checklist_name(s.to_string());
+                Event::Html(string) => {
+                    if string.contains("checklist") && string.contains("<!--") {
+                        checklist.name = extract_checklist_name(string.to_string());
                         is_checklist ^= true
                     }
                 }
@@ -136,10 +132,7 @@ impl Checklist {
 }
 
 pub(super) fn extract_checklist_name(input_string: String) -> String {
-    debug!(
-        "[extract_checklist_name] Extracting name from : {:?}",
-        input_string
-    );
+    debug!("[extract_checklist_name] Extracting name from : {input_string:?}");
     let mut name = String::from("");
     // Remove HTML comment brackets
     let input_string = input_string.replace(&['<', '!', '-', '>'][..], "");
@@ -148,7 +141,7 @@ pub(super) fn extract_checklist_name(input_string: String) -> String {
     match result {
         Ok(value) => match value.get("checklist") {
             Some(val) => {
-                debug!("[extract_checklist_name] Found: {:?}", val);
+                debug!("[extract_checklist_name] Found: {val:?}");
                 name = val.as_str().unwrap().to_string();
             }
             None => {
